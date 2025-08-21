@@ -398,6 +398,7 @@ const TripForm: React.FC<TripFormProps> = ({initialData}) => {
                                 <input
                                     type="checkbox"
                                     id="hasAvailableDates"
+
                                     checked={tripData.hasAvailableDates}
                                     onChange={e =>
                                         setTripData(prev => ({
