@@ -1,9 +1,8 @@
-// Importujemy funkcję 'dynamic' z biblioteki Next.js
+"use client"; // <--- DODAJ TĘ LINIJKĘ NA SAMEJ GÓRZE
+
 import dynamic from 'next/dynamic';
 
-// Zamiast importować AddTripForm bezpośrednio, robimy to dynamicznie.
-// Opcja { ssr: false } jest kluczowa - mówi Next.js, aby nie renderować tego
-// komponentu na serwerze, co zapobiega błędowi "self is not defined".
+// Ponieważ cały plik jest teraz "kliencki", możesz użyć dynamicznego importu
 const AddTripForm = dynamic(
     () => import('@/components/admin/trips/AddTripForm'),
     { ssr: false }
@@ -14,8 +13,7 @@ export default function AddTripPage() {
         <div className="container mx-auto py-10">
             <h1 className="text-3xl font-bold mb-8 border-b pb-4">Dodaj nową wycieczkę</h1>
 
-            {/* Teraz ten komponent zostanie wczytany tylko w przeglądarce klienta */}
             <AddTripForm/>
         </div>
-    )
+    );
 }
