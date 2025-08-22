@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { apiFetch } from "@/utils/auth";
 import { toast } from 'react-toastify';
-import { PlusCircleIcon } from 'lucide-react';
+
 import CategoryTreeTable from './components/CategoryTreeTable';
 import CategoryModal from './components/CategoryModal';
 import { CategoryDTO } from '@/app/shared/types/category.types'; // Musisz zdefiniować ten typ
@@ -128,7 +128,7 @@ export default function CategoriesPage() {
                         onClick={() => handleOpenModal()}
                         className="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white shadow hover:bg-blue-700 transition"
                     >
-                        <PlusCircleIcon size={18} />
+
                         Dodaj kategorię
                     </button>
                 </div>

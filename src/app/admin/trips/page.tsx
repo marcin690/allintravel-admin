@@ -11,7 +11,7 @@ import Link from "next/link";
 import {BiPencil} from "react-icons/bi";
 import {AiFillDelete} from "react-icons/ai";
 import {toast} from "react-toastify";
-import {PlusCircleIcon} from "lucide-react";
+
 
 export default function TripsPage() {
 
@@ -188,7 +188,7 @@ export default function TripsPage() {
                         href="/admin/trips/add"
                         className="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white shadow hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:ring-offset-1 transition"
                     >
-                        <PlusCircleIcon size={18}/>
+
                         Dodaj wycieczkę
                     </Link>
                 </div>

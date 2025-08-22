@@ -1,6 +1,7 @@
 import { routes } from "@/config/routes";
 import {PiAirplaneTiltDuotone, PiFolder} from "react-icons/pi";
 import React from "react";
+import {Link} from "react-scroll";
 
 export const routes = {
   // ...inne trasy
@@ -17,24 +18,21 @@ export const menuItems = [
   },
   {
     name: "Wycieczki",
-    href: "#",
+    href: "/admin/trips",
     icon: <PiAirplaneTiltDuotone />,
     dropdownItems: [
       {
-        name: "Indywidualne",
-        href: routes.trips.byType("INDIVIDUAL"),
+        name: "Lista wycieczek",
+        href: "/admin/trips",
+      },
+
+      {
+        name: "Dodaj nowa",
+        href: "/admin/trips/add",
       },
       {
-        name: "Szkolne",
-        href: routes.trips.byType("SCHOOL"),
-      },
-      {
-        name: "Pielgrzymki",
-        href: routes.trips.byType("PILGRIMAGE"),
-      },
-      {
-        name: "Firmowe",
-        href: routes.trips.byType("CORPORATE"),
+        name: "Kategorie wycieczek",
+        href: "/admin/trips/categories/",
       },
     ],
   },

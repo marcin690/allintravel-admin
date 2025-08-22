@@ -43,7 +43,7 @@ export default function SignInForm() {
             }
             const { token } = await res.json();
             setAuthAfterLogin(token);
-            router.push('/admin');
+            router.push('/admin/trips');
         } catch (err: any) {
             alert(err.message);
         }
