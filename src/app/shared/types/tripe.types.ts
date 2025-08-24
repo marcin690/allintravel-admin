@@ -36,6 +36,8 @@ export type IndividualTermDTO = {
     reserved?: number;
     pricePerPerson: number;
     internalNotes?: string;
+    travelPayProductUrl:string;
+    travelManagerProductId: string
 };
 
 // --- Terminy GRUPOWE ---
@@ -70,8 +72,12 @@ export type TermDTO = IndividualTermDTO | GroupTermDTO;
 export type ItineraryDayDTO = {
     dayNumber: number;
     title: string;
-    description: string; // backend wymaga description
+    description: string;
     imageUrl?: string;
+    longDescriptionForOffer?: string;
+    specDateForOffer?: string;
+    subtitle?: string;
+
 };
 
 export type DepartureOptionDTO = {
@@ -88,6 +94,14 @@ export type AvailableDateDTO = {
     totalCapacity: number;
     price?: number;
 };
+
+export type AddonDTO = {
+    id: number;
+    name: string;
+    price?: number;
+    description?: string;
+    active: boolean;
+}
 
 export type TripType =
     | 'INDIVIDUAL'
@@ -116,7 +130,8 @@ export type TripCreateUpdateDTO = {
     priceIncludes?: string;
     priceExcludes?: string;
     hasAvailableDates?: boolean;
-
+    additionalInformation: string;
+    startingPriceWithoutDate?: number;
     tagNames?: string[];
     itineraryDays: ItineraryDayDTO[];
     departureOptions?: DepartureOptionDTO[];

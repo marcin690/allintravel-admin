@@ -28,7 +28,10 @@ export function logout() {
 
 // fetch z automatycznym Bearer + auto-logout przy 401/403
 export async function apiFetch(path: string, init?: RequestInit) {
-    const base = process.env.NEXT_PUBLIC_API_URL ?? "";
+    const base = process.env.NEXT_PUBLIC_API_URL ??
+        (process.env.NODE_ENV === 'production'
+            ? 'https://allintravel-api-d9g2dnewh8f3hhaf.polandcentral-01.azurewebsites.net/api'
+            : 'http://localhost:8080/api');
     const token = typeof window !== "undefined" ? localStorage.getItem("jwt") : null;
 
     const isFormData = typeof FormData !== "undefined" && init?.body instanceof FormData;

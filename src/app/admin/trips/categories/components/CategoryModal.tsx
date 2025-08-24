@@ -18,12 +18,7 @@ const CategoryModal: React.FC<CategoryModalProps> = ({ isOpen, onClose, onSubmit
     const [metaDescription, setMetaDescription] = useState('');
     const [image, setImage] = useState<File | null>(null);
     const [icon, setIcon] = useState<File | null>(null);
-
-    // Ten stan i useEffect nie są już potrzebne przy renderowaniu warunkowym
-    // const [showExisting, setShowExisting] = useState(false);
-    // useEffect(() => {
-    //     setShowExisting(!!initialData?.imageUrl);
-    // }, [initialData]);
+    const [order, setOrder] = useState<number>(0);
 
     const [parentOptions, setParentOptions] = useState<CategoryDTO[]>([]);
 
@@ -33,6 +28,10 @@ const CategoryModal: React.FC<CategoryModalProps> = ({ isOpen, onClose, onSubmit
             setParentId(initialData.parentId);
             setMetaTitle(initialData.metaTitle || '');
             setMetaDescription(initialData.metaDescription || '');
+            // NIE ustawiaj plików na stringi - zostaw null, bo to są istniejące zdjęcia
+            setImage(null);
+            setIcon(null);
+            setOrder(initialData.order || 0);
         } else {
             // Resetuj formularz dla nowej kategorii
             setName('');
@@ -41,6 +40,7 @@ const CategoryModal: React.FC<CategoryModalProps> = ({ isOpen, onClose, onSubmit
             setMetaDescription('');
             setImage(null);
             setIcon(null);
+            setOrder(0);
         }
     }, [initialData, isOpen]);
 
@@ -70,7 +70,8 @@ const CategoryModal: React.FC<CategoryModalProps> = ({ isOpen, onClose, onSubmit
             tripType,
             parentId: parentId === 0 ? null : parentId,
             metaTitle,
-            metaDescription
+            metaDescription,
+            order
         };
 
         formData.append('category', new Blob([JSON.stringify(categoryData)], { type: 'application/json' }));
@@ -90,55 +91,125 @@ const CategoryModal: React.FC<CategoryModalProps> = ({ isOpen, onClose, onSubmit
                 <form onSubmit={handleSubmit} className="space-y-4">
                     <div>
                         <label className="block text-sm font-medium text-gray-700">Nazwa</label>
-                        <input type="text" value={name} onChange={(e) => setName(e.target.value)} required className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2" />
+                        <input
+                            type="text"
+                            value={name}
+                            onChange={(e) => setName(e.target.value)}
+                            required
+                            className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2"
+                        />
                     </div>
+
                     <div>
                         <label className="block text-sm font-medium text-gray-700">Kategoria nadrzędna</label>
-                        <select value={parentId || 0} onChange={(e) => setParentId(Number(e.target.value) || null)} className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2">
+                        <select
+                            value={parentId || 0}
+                            onChange={(e) => setParentId(Number(e.target.value) || null)}
+                            className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2"
+                        >
                             <option value={0}>-- Brak (kategoria główna) --</option>
                             {parentOptions.map(opt => (
                                 <option key={opt.id} value={opt.id}>{opt.name}</option>
                             ))}
                         </select>
                     </div>
+
+                    <div>
+                        <label className="block text-sm font-medium text-gray-700">Kolejność</label>
+                        <input
+                            type="number"
+                            value={order}
+                            onChange={(e) => setOrder(Number(e.target.value) || 0)}
+                            className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2"
+                        />
+                    </div>
+
                     <div>
                         <label className="block text-sm font-medium text-gray-700">Tytuł Meta (SEO)</label>
-                        <input type="text" value={metaTitle} onChange={(e) => setMetaTitle(e.target.value)} className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2" />
+                        <input
+                            type="text"
+                            value={metaTitle}
+                            onChange={(e) => setMetaTitle(e.target.value)}
+                            className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2"
+                        />
                     </div>
+
                     <div>
                         <label className="block text-sm font-medium text-gray-700">Opis Meta (SEO)</label>
-                        <textarea value={metaDescription} onChange={(e) => setMetaDescription(e.target.value)} rows={3} className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2" />
+                        <textarea
+                            value={metaDescription}
+                            onChange={(e) => setMetaDescription(e.target.value)}
+                            rows={3}
+                            className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2"
+                        />
                     </div>
 
-
+                    {/* Wyświetl istniejące zdjęcie TYLKO jeśli istnieje */}
                     {initialData?.imageUrl && (
                         <div className="mb-2">
-                            <label className="block text-sm font-medium text-gray-700">Istniejący obrazek</label>
+                            <label className="block text-sm font-medium text-gray-700">Aktualne zdjęcie</label>
                             <div className="mt-1">
                                 <img
                                     src={getImageUrl(initialData.imageUrl)}
-                                    alt="Podgląd"
+                                    alt="Podgląd kategorii"
                                     className="w-24 h-24 object-cover rounded-md border"
                                 />
                             </div>
                         </div>
                     )}
 
+                    <div>
+                        <label className="block text-sm font-medium text-gray-700">
+                            {initialData?.imageUrl ? 'Zmień zdjęcie' : 'Dodaj zdjęcie'}
+                        </label>
+                        <input
+                            type="file"
+                            accept="image/*"
+                            onChange={(e) => setImage(e.target.files ? e.target.files[0] : null)}
+                            className="mt-1 block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
+                        />
+                    </div>
+
+                    {/* Wyświetl istniejącą ikonę TYLKO jeśli istnieje */}
+                    {initialData?.iconUrl && (
+                        <div className="mb-2">
+                            <label className="block text-sm font-medium text-gray-700">Aktualna ikona</label>
+                            <div className="mt-1">
+                                <img
+                                    src={getImageUrl(initialData.iconUrl)}
+                                    alt="Ikona kategorii"
+                                    className="w-12 h-12 object-cover rounded-md border"
+                                />
+                            </div>
+                        </div>
+                    )}
 
                     <div>
                         <label className="block text-sm font-medium text-gray-700">
-                            {initialData?.imageUrl ? 'Zmień obrazek' : 'Dodaj obrazek'}
+                            {initialData?.iconUrl ? 'Zmień ikonę' : 'Dodaj ikonę'}
                         </label>
-                        <input type="file" onChange={(e) => setImage(e.target.files ? e.target.files[0] : null)} className="mt-1 block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"/>
-                    </div>
-                    <div>
-                        <label className="block text-sm font-medium text-gray-700">Ikona</label>
-                        <input type="file" onChange={(e) => setIcon(e.target.files ? e.target.files[0] : null)} className="mt-1 block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"/>
+                        <input
+                            type="file"
+                            accept="image/*"
+                            onChange={(e) => setIcon(e.target.files ? e.target.files[0] : null)}
+                            className="mt-1 block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
+                        />
                     </div>
 
                     <div className="flex justify-end gap-3 pt-4">
-                        <button type="button" onClick={onClose} className="px-4 py-2 bg-gray-200 text-gray-800 rounded-md hover:bg-gray-300">Anuluj</button>
-                        <button type="submit" className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700">Zapisz</button>
+                        <button
+                            type="button"
+                            onClick={onClose}
+                            className="px-4 py-2 bg-gray-200 text-gray-800 rounded-md hover:bg-gray-300"
+                        >
+                            Anuluj
+                        </button>
+                        <button
+                            type="submit"
+                            className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
+                        >
+                            Zapisz
+                        </button>
                     </div>
                 </form>
             </div>

@@ -121,7 +121,7 @@ export default function DepartureOptionsEditor({
                             <td className="px-4 py-3">
                                 {/* Jeśli backend przyjmuje tylko datę → zmień na type="date" */}
                                 <input
-                                    type="datetime-local"
+                                    type="time"
                                     value={row.departureTime ?? ""}
                                     onChange={(e) => updateCell(idx, "departureTime", e.target.value)}
                                     className={tableInputClassName}

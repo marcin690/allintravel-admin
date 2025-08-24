@@ -20,13 +20,14 @@ const CategoryRow: React.FC<CategoryRowProps> = ({ category, level, onEdit, onDe
                     {category.name}
                 </td>
                 <td className="p-4 text-sm text-gray-600 border-b border-gray-200">{category.slug}</td>
+                <td className="p-4 text-sm text-gray-600 border-b border-gray-200">{category.order}</td>
                 <td className="p-4 text-sm text-gray-800 border-b border-gray-200">
                     <div className="flex items-center gap-3">
                         <button onClick={() => onEdit(category)} className="text-blue-600 hover:text-blue-800">
-                            <BiPencil size={18} />
+                            <BiPencil size={18}/>
                         </button>
                         <button onClick={() => onDelete(category.id)} className="text-red-600 hover:text-red-800">
-                            <AiFillDelete size={18} />
+                            <AiFillDelete size={18}/>
                         </button>
                     </div>
                 </td>
@@ -59,6 +60,7 @@ const CategoryTreeTable: React.FC<CategoryTreeTableProps> = ({ categories, onEdi
             <tr>
                 <th className="p-4 text-sm font-medium text-gray-700 text-left border-b border-gray-300">Nazwa</th>
                 <th className="p-4 text-sm font-medium text-gray-700 text-left border-b border-gray-300">Slug</th>
+                <th className="p-4 text-sm font-medium text-gray-700 text-left border-b border-gray-300">Kolejność</th>
                 <th className="p-4 text-sm font-medium text-gray-700 text-left border-b border-gray-300">Akcje</th>
             </tr>
             </thead>

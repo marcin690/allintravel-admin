@@ -238,6 +238,196 @@
   }
 }
 
+/* styles/jodit-styles.css */
+
+/* Główny kontener edytora */
+.jodit-container {
+  border: 1px solid #d1d5db !important;
+  border-radius: 6px !important;
+}
+
+/* Obszar edycji */
+.jodit-wysiwyg {
+  padding: 12px !important;
+  min-height: 200px !important;
+  font-family: inherit !important;
+  font-size: 14px !important;
+  line-height: 1.5 !important;
+}
+
+/* Przywróć style dla list i innych elementów */
+.jodit-wysiwyg ul {
+  list-style-type: disc !important;
+  margin: 16px 0 !important;
+  padding-left: 40px !important;
+}
+
+.jodit-wysiwyg ol {
+  list-style-type: decimal !important;
+  margin: 16px 0 !important;
+  padding-left: 40px !important;
+}
+
+.jodit-wysiwyg li {
+  margin: 4px 0 !important;
+  display: list-item !important;
+}
+
+/* Nagłówki */
+.jodit-wysiwyg h1 {
+  font-size: 2em !important;
+  font-weight: bold !important;
+  margin: 20px 0 16px 0 !important;
+}
+
+.jodit-wysiwyg h2 {
+  font-size: 1.5em !important;
+  font-weight: bold !important;
+  margin: 18px 0 14px 0 !important;
+}
+
+.jodit-wysiwyg h3 {
+  font-size: 1.25em !important;
+  font-weight: bold !important;
+  margin: 16px 0 12px 0 !important;
+}
+
+.jodit-wysiwyg h4 {
+  font-size: 1.1em !important;
+  font-weight: bold !important;
+  margin: 14px 0 10px 0 !important;
+}
+
+/* Paragrafy */
+.jodit-wysiwyg p {
+  margin: 12px 0 !important;
+}
+
+/* Bold i italic */
+.jodit-wysiwyg strong,
+.jodit-wysiwyg b {
+  font-weight: bold !important;
+}
+
+.jodit-wysiwyg em,
+.jodit-wysiwyg i {
+  font-style: italic !important;
+}
+
+/* Linki */
+.jodit-wysiwyg a {
+  color: #3b82f6 !important;
+  text-decoration: underline !important;
+}
+
+.jodit-wysiwyg a:hover {
+  color: #1d4ed8 !important;
+}
+
+/* Blockquotes */
+.jodit-wysiwyg blockquote {
+  border-left: 4px solid #e5e7eb !important;
+  margin: 16px 0 !important;
+  padding: 8px 0 8px 16px !important;
+  color: #6b7280 !important;
+  font-style: italic !important;
+}
+
+/* Tabele */
+.jodit-wysiwyg table {
+  border-collapse: collapse !important;
+  width: 100% !important;
+  margin: 16px 0 !important;
+}
+
+.jodit-wysiwyg table td,
+.jodit-wysiwyg table th {
+  border: 1px solid #d1d5db !important;
+  padding: 8px 12px !important;
+  text-align: left !important;
+}
+
+.jodit-wysiwyg table th {
+  background-color: #f9fafb !important;
+  font-weight: bold !important;
+}
+
+/* Kod */
+.jodit-wysiwyg code {
+  background-color: #f3f4f6 !important;
+  padding: 2px 4px !important;
+  border-radius: 3px !important;
+  font-family: 'Courier New', monospace !important;
+  font-size: 0.875em !important;
+}
+
+.jodit-wysiwyg pre {
+  background-color: #f3f4f6 !important;
+  border: 1px solid #d1d5db !important;
+  border-radius: 6px !important;
+  padding: 12px !important;
+  overflow-x: auto !important;
+  margin: 16px 0 !important;
+}
+
+.jodit-wysiwyg pre code {
+  background: none !important;
+  padding: 0 !important;
+  border-radius: 0 !important;
+}
+
+/* Obrazy */
+.jodit-wysiwyg img {
+  max-width: 100% !important;
+  height: auto !important;
+  border-radius: 6px !important;
+  margin: 12px 0 !important;
+}
+
+/* HR */
+.jodit-wysiwyg hr {
+  border: none !important;
+  border-top: 1px solid #d1d5db !important;
+  margin: 24px 0 !important;
+}
+
+/* Toolbar */
+.jodit-toolbar {
+  border-bottom: 1px solid #e5e7eb !important;
+  background: #f9fafb !important;
+  padding: 8px !important;
+}
+
+.jodit-toolbar-button {
+  border-radius: 4px !important;
+  margin: 2px !important;
+  padding: 6px 8px !important;
+}
+
+.jodit-toolbar-button:hover {
+  background-color: #e5e7eb !important;
+}
+
+.jodit-toolbar-button.jodit-toolbar-button_active {
+  background-color: #3b82f6 !important;
+  color: white !important;
+}
+
+/* Placeholder */
+.jodit-placeholder {
+  color: #9ca3af !important;
+  font-style: italic !important;
+}
+
+/* Status bar */
+.jodit-status-bar {
+  border-top: 1px solid #e5e7eb !important;
+  background: #f9fafb !important;
+  padding: 4px 12px !important;
+  font-size: 12px !important;
+  color: #6b7280 !important;
+}
+
 @layer utilities {
   .fill-opacity-10 {
     fill-opacity: 0.1;

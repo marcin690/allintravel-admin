@@ -7,6 +7,7 @@ type IndividualTerm = {
     status: "AVAILABLE" | "FEW_LEFT" | "SOLD_OUT";
     totalCapacity: number;
     pricePerPerson?: number;
+    travelPayProductUrl?: string;
 };
 
 interface Props {
@@ -22,7 +23,7 @@ const IndividualTermsEditor: React.FC<Props> = ({ terms, onChange, inputClassNam
     const addTerm = () =>
         onChange([
             ...terms,
-            { startDate: "", endDate: "", status: "AVAILABLE", totalCapacity: 0, pricePerPerson: undefined },
+            { startDate: "", endDate: "", status: "AVAILABLE", totalCapacity: 0, pricePerPerson: undefined, travelPayProductUrl: "" },
         ]);
 
     const removeTerm = (idx: number) => onChange(terms.filter((_, i) => i !== idx));
@@ -47,7 +48,7 @@ const IndividualTermsEditor: React.FC<Props> = ({ terms, onChange, inputClassNam
                         <th className="px-4 py-3 text-xs font-medium text-gray-500 uppercase">Status</th>
                         <th className="px-4 py-3 text-xs font-medium text-gray-500 uppercase">Pojemność</th>
                         <th className="px-4 py-3 text-xs font-medium text-gray-500 uppercase">Cena / os.</th>
-                        <th className="px-4 py-3 w-16"></th>
+                        <th className="px-4 py-3 text-xs font-medium text-gray-500 uppercase">Link travelPay</th>
                     </tr>
                     </thead>
                     <tbody className="bg-white divide-y divide-gray-200">
@@ -98,8 +99,31 @@ const IndividualTermsEditor: React.FC<Props> = ({ terms, onChange, inputClassNam
                                     className={tableInput}
                                 />
                             </td>
+                            <td className="px-4 py-3">
+                                <div className="flex items-center">
+
+                                    <input
+                                        type="url"
+                                        value={t.travelPayProductUrl ?? ""}
+                                        onChange={(e) => {
+                                            let value = e.target.value.trim();
+
+                                            // Auto-dodaj https:// jeśli nie ma protokołu
+                                            if (value && !value.match(/^https?:\/\//)) {
+                                                value = `https://${value}`;
+                                            }
+
+                                            update(i, "travelPayProductUrl", value);
+                                        }}
+                                        className={tableInput}
+                                        placeholder="allin.travelpay.online/booking/909-218 (https:// zostanie dodane automatycznie)"
+                                        title="Protokół https:// zostanie dodany automatycznie"
+                                    />
+                                </div>
+                            </td>
                             <td className="px-4 py-3 text-right">
-                                <button type="button" onClick={() => removeTerm(i)} className="text-red-600 hover:underline">
+                                <button type="button" onClick={() => removeTerm(i)}
+                                        className="text-red-600 hover:underline">
                                     Usuń
                                 </button>
                             </td>

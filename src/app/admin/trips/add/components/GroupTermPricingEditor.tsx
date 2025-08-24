@@ -3,6 +3,7 @@
 import React from 'react';
 import { TermDTO, VOIVODESHIPS, PARTICIPANT_BRACKETS } from '@/app/shared/types/tripe.types';
 
+
 type Props = {
     term: TermDTO;
     termIndex: number;
@@ -12,7 +13,7 @@ type Props = {
 };
 
 // 💡 Helper: upewnia strukturę dla danego bracketu
-function ensureBracket(term: TermDTO, idx: number) {
+function ensureBracket(term: TermDTO, idx: number | null) {
     if (!term.brackets) term.brackets = [];
     if (!term.brackets[idx]) {
         term.brackets[idx] = {
@@ -42,7 +43,7 @@ const GroupTermPricingEditor: React.FC<Props> = ({
                                                  }) => {
     const tableInputClassName =
         'w-full p-1.5 text-sm rounded-md border border-gray-300 bg-transparent focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500';
-
+    const [copyPrice, setCopyPrice] = React.useState('');
     // Zmiana ceny w komórce tabeli
     function handlePriceChange(bracketIndex: number, voivodeship: string, next: string) {
         const updated: TermDTO = { ...term, brackets: [...(term.brackets ?? [])] };
@@ -71,6 +72,31 @@ const GroupTermPricingEditor: React.FC<Props> = ({
         onTermChange(termIndex, updated);
     }
 
+    function handlePriceChanger(bracketIndex: null | number, voivodeship: string, next: string) {
+        const updated: TermDTO = {...term, brackets: [...(term.brackets ?? [])]};
+        const bracket = ensureBracket(updated, bracketIndex);
+        const priceRow = bracket.prices.find(p => p.voivodeship === voivodeship);
+        if (priceRow) {
+            priceRow.pricePerPerson = next === '' ? (undefined as any) : parseFloat(next);
+        }
+
+        onTermChange(termIndex, updated);
+
+    }
+
+    function handleCopyPrice(copyPrice: string) {
+        const updated: TermDTO = { ...term, brackets: [...(term.brackets ?? [])] };
+        updated.brackets = updated.brackets.map(bracket => {
+            bracket.prices = bracket.prices.map(price => ({
+                ...price,
+                pricePerPerson: copyPrice === '' ? (undefined as any) : parseFloat(copyPrice),
+            }));
+            return bracket;
+        });
+        onTermChange(termIndex, updated);
+    }
+
+
     // Zmiany pól terminu (daty/pojemność)
     function handleTermDetailsChange(e: React.ChangeEvent<HTMLInputElement>) {
         const { name, value } = e.target;
@@ -88,8 +114,30 @@ const GroupTermPricingEditor: React.FC<Props> = ({
             >
                 &times;
             </button>
-
-            <h6 className="font-semibold text-md text-gray-800">Termin #{termIndex + 1}</h6>
+            <div className="flex justify-between items-center">
+                <h6 className="font-semibold text-md text-gray-800">Termin #{termIndex + 1}</h6>
+                <div className="flex flex-row items-center justify-stretch">
+                    <div>
+                        <label className="block text-xs mb-1.5">Cena do skopiowania</label>
+                        <input
+                            type="number"
+                            name="copyPriceInput"
+                            value={copyPrice}
+                            onChange={e => setCopyPrice(e.target.value)}
+                            className={`${inputClassName} text-xs w-100`}
+                        />
+                    </div>
+                    <div>
+                        <button
+                            type="button"
+                            onClick={() => handleCopyPrice(copyPrice)}
+                            className="justify-stretch ml-2 py-1 px-2 rounded bg-gray-500 text-white"
+                        >
+                            Kopiuj
+                        </button>
+                    </div>
+                </div>
+            </div>
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div>
@@ -122,9 +170,11 @@ const GroupTermPricingEditor: React.FC<Props> = ({
                         className={inputClassName}
                     />
                 </div>
+
             </div>
 
             <div className="overflow-x-auto">
+
                 <table className="min-w-full divide-y divide-gray-200 border">
                     <thead className="bg-gray-50">
                     <tr>
@@ -134,6 +184,9 @@ const GroupTermPricingEditor: React.FC<Props> = ({
                         {PARTICIPANT_BRACKETS.map((b, i) => (
                             <th key={b.min} className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
                                 {b.label}
+                                <label>
+                                    <span className="block text-xs mt-1">Liczba gratisów</span>
+                                </label>
                                 <input
                                     type="number"
                                     placeholder="Gratisy"
@@ -149,6 +202,7 @@ const GroupTermPricingEditor: React.FC<Props> = ({
                     <tbody className="bg-white divide-y divide-gray-200">
                     {VOIVODESHIPS.map(v => (
                         <tr key={v.value} className="hover:bg-gray-50">
+
                             <td className="px-4 py-3 whitespace-nowrap text-sm font-medium text-gray-900">{v.label}</td>
                             {PARTICIPANT_BRACKETS.map((b, i) => {
                                 const price = term.brackets?.[i]?.prices?.find(p => p.voivodeship === v.value);

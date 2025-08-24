@@ -5,6 +5,7 @@ import {
     TripCreateUpdateDTO,
     TripDetailsDTO,
     ItineraryDayDTO,
+    AddonDTO,
     TermDTO,
     DepartureOptionDTO,
     PARTICIPANT_BRACKETS, // Pamiętaj, aby importować z poprawnego pliku
@@ -25,7 +26,10 @@ import {ExtraFieldNodeFE} from "@/app/shared/types/extraFields";
 import ExtraFieldsEditor from "@/components/shared/extraFieldsEditor/ExtraFieldsEditor";
 import { sanitizeExtraFields, collectImageFilesDFS } from "@/utils/ExtraFieldsHelper";
 import {appendExtraFieldsToFormData} from "@/components/shared/extraFieldsEditor/ExtraFieldsHelper";
-import {ErrorBar} from "recharts";
+
+import AddonsEditor from "@/app/admin/trips/add/components/AddonsEditor";
+import ImageUploader from "@/components/shared/ImageUploader";
+import ItineraryDayEditor from "@/app/admin/trips/add/components/ItineraryDayEditor";
 
 interface TripFormProps {
     initialData?: TripDetailsDTO;
@@ -46,6 +50,7 @@ const TripForm: React.FC<TripFormProps> = ({initialData}) => {
         longDescription: '',
         mainImageUrl: '',
         featured: false,
+        additionalInformation: "",
         ratePerKm: undefined,
         tripType: 'INDIVIDUAL',
         categoryId: 0,
@@ -56,13 +61,15 @@ const TripForm: React.FC<TripFormProps> = ({initialData}) => {
         priceIncludes: '',
         priceExcludes: '',
         hasAvailableDates: true,
+        startingPriceWithoutDate: undefined,
         tagNames: [],
         itineraryDays: [],
         departureOptions: [],
         terms: [],
         metaTitle: '',
         metaDescription: '',
-        corporatePricePerPerson: undefined, // tylko gdy używasz CORP
+        corporatePricePerPerson: undefined,
+        addons: []
     });
 
     const [mainImageFile, setMainImageFile] = useState<File | null>(null);
@@ -84,6 +91,7 @@ const TripForm: React.FC<TripFormProps> = ({initialData}) => {
             featured: initialData.featured ?? false,
             galleryImageUrls: initialData.galleryImageUrls ?? [],
             tripType: initialData.tripType,
+            startingPriceWithoutDate: initialData.startingPriceWithoutDate ?? undefined,
             categoryId: initialData.category?.id ?? 0,
             transportType: initialData.transportType ?? 'COACH',
             durationDays: initialData.durationDays ?? 0,
@@ -91,14 +99,20 @@ const TripForm: React.FC<TripFormProps> = ({initialData}) => {
             region: initialData.region ?? '',
             priceIncludes: initialData.priceIncludes ?? '',
             priceExcludes: initialData.priceExcludes ?? '',
+            additionalInformation: initialData.additionalInformation ?? '',
             hasAvailableDates: initialData.hasAvailableDates ?? true,
-
+            addons: initialData.addons ?? [],
             tagNames: (initialData.tags ?? []).map(t => t.name),
 
             itineraryDays: (initialData.itineraryDays ?? []).map(d => ({
+                id: d.id,
                 dayNumber: Number(d.dayNumber),
                 title: d.title ?? '',
+                subtitle: d.subtitle ?? '',
                 description: d.description ?? '',
+                longDescriptionForOffer: d.longDescriptionForOffer ?? '',
+                specDateForOffer: d.specDateForOffer ?? '',
+                imageUrl: d.imageUrl ?? '',
             })),
 
             departureOptions: initialData.departureOptions ?? [],
@@ -106,11 +120,11 @@ const TripForm: React.FC<TripFormProps> = ({initialData}) => {
 
             terms: initialData.terms ?? [],
 
-            metaTitle: initialData.metaTitle ?? '',
-            metaDescription: initialData.metaDescription ?? '',
-
+            metaTitle: initialData.seo?.metaTitle || (initialData as any).metaTitle || '',
+            metaDescription: initialData.seo?.metaDescription || (initialData as any).metaDescription || '',
 
             corporatePricePerPerson: (initialData as any).corporatePricePerPerson ?? undefined,
+
         };
 
         setTripData(dataForForm);
@@ -121,11 +135,33 @@ const TripForm: React.FC<TripFormProps> = ({initialData}) => {
     const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
         const {name, value} = e.target;
         const isNumberField = ['durationDays', 'categoryId','ratePerKm' ].includes(name);
+
+
         setTripData(prevData => ({
             ...prevData,
             [name]: isNumberField ? Number(value) : value
         }))
     }
+
+    const handleSeoChange = (seoData: {metaTitle: string, metaDescription: string}) => {
+        setTripData(prev => ({
+            ...prev,
+            metaTitle: seoData.metaTitle,
+            metaDescription: seoData.metaDescription
+        }));
+    };
+
+
+    const handleMainImageUploadSuccess = (uploadedUrl: string) => {
+        setMainImageUrl(uploadedUrl);
+        setMainImageFile(null);
+        setTripData(prev => ({ ...prev, mainImageUrl: uploadedUrl }));
+    };
+
+    const handleMainImageRemove = () => {
+        setMainImageUrl(null);
+        setTripData(prev => ({ ...prev, mainImageUrl: '' }));
+    };
 
     const addTerm = () => {
         if (isGroupTrip) {
@@ -179,15 +215,18 @@ const TripForm: React.FC<TripFormProps> = ({initialData}) => {
         const newDay: ItineraryDayDTO = {
             dayNumber: tripData.itineraryDays.length + 1,
             title: "",
-            description: ""
-        }
+            subtitle: "",
+            description: "",
+            longDescriptionForOffer: "",
+            specDateForOffer: "",
+            imageUrl: ""
+        };
 
-        const newListOfDays = [...tripData.itineraryDays, newDay];
-        setTripData({
-            ...tripData,
-            itineraryDays: newListOfDays
-        })
-    }
+        setTripData(prev => ({
+            ...prev,
+            itineraryDays: [...prev.itineraryDays, newDay]
+        }));
+    };
 
     const removeItineraryDay = (indexToRemove: number) => {
         const oldListOfDays = tripData.itineraryDays;
@@ -251,8 +290,23 @@ const TripForm: React.FC<TripFormProps> = ({initialData}) => {
             toast.error('Każdy dzień programu musi mieć opis.');
             return;
         }
+
+        if (!tripData.categoryId || tripData.categoryId <= 0) {
+            toast.error("Musisz wybrać kategorię przed zapisaniem wycieczki.");
+            return;
+        }
+
         if ((tripData.departureOptions ?? []).some(o => !o.locationName?.trim())) {
             toast.error('Każda lokalizacja wyjazdu musi mieć nazwę (locationName).');
+            return;
+        }
+
+
+        if ((tripData.terms ?? []).some(term => {
+            const url = (term as any).travelPayProductUrl;
+            return url && !url.match(/^https?:\/\//);
+        })) {
+            toast.error('Wszystkie linki TravelPay muszą zaczynać się od http:// lub https://');
             return;
         }
 
@@ -260,6 +314,7 @@ const TripForm: React.FC<TripFormProps> = ({initialData}) => {
         const dtoForJson = normalizeTripDto({
             ...tripData,
             mainImageUrl: !mainImageFile && mainImageUrl ? mainImageUrl : tripData.mainImageUrl
+
         });
 
         // 3) FormData
@@ -314,12 +369,25 @@ const TripForm: React.FC<TripFormProps> = ({initialData}) => {
             dto.ratePerKm = Number(dto.ratePerKm);
         }
 
-        // Itinerary: upewnij się, że wszystkie dni mają description
+        dto.addons = (dto.addons ?? []).map(addon => ({
+            id: addon.id, // może być undefined dla nowych
+            name: addon.name.trim(),
+            price: Number(addon.price ?? 0),
+            description: addon.description?.trim() || undefined,
+        })).filter(addon => addon.name);
+
+        // Itinerary: upewnij się, że wszystkie dni mają wymagane pola
         dto.itineraryDays = (dto.itineraryDays ?? []).map(d => ({
+            id: d.id,
             dayNumber: Number(d.dayNumber),
-            title: d.title ?? '',
+            title: d.title?.trim() ?? '',
+            subtitle: d.subtitle?.trim() || undefined,
             description: d.description ?? '', // backend ma NOT NULL
+            longDescriptionForOffer: d.longDescriptionForOffer?.trim() || undefined,
+            specDateForOffer: d.specDateForOffer?.trim() || undefined,
+            imageUrl: d.imageUrl?.trim() || undefined,
         }));
+
 
         // DepartureOptions: pilnuj locationName
         dto.departureOptions = (dto.departureOptions ?? []).map(o => ({
@@ -328,6 +396,9 @@ const TripForm: React.FC<TripFormProps> = ({initialData}) => {
             priceAdjustment: o.priceAdjustment !== undefined && o.priceAdjustment !== null ? Number(o.priceAdjustment) : undefined,
             departureTime: o.departureTime ?? undefined,
         }));
+
+        dto.metaTitle = dto.metaTitle || '';
+        dto.metaDescription = dto.metaDescription || '';
 
         // Terms w zależności od typu
         if (dto.tripType === 'INDIVIDUAL') {
@@ -342,6 +413,8 @@ const TripForm: React.FC<TripFormProps> = ({initialData}) => {
                     reserved: it.reserved !== undefined ? Number(it.reserved) : 0,
                     pricePerPerson: Number(it.pricePerPerson ?? 0),
                     internalNotes: it.internalNotes ?? undefined,
+                    travelPayProductUrl: it.travelPayProductUrl ?? undefined,
+                    travelPayProductId: it.travelPayProductId ?? undefined,
                 };
             });
         } else if (['SCHOOL', 'SENIOR', 'PILGRIMAGE'].includes(dto.tripType)) {
@@ -357,7 +430,7 @@ const TripForm: React.FC<TripFormProps> = ({initialData}) => {
                     reservedFree: gt.reservedFree ? Number(gt.reservedFree) : 0,
                     internalNotes: gt.internalNotes ?? undefined,
                     brackets: (gt.brackets ?? []).map((b: any) => ({
-                        minParticipants: String(b.minParticipants) as '25'|'45'|'60', // <-- string
+                        minParticipants: String(b.minParticipants) as '25'|'45'|'60',
                         freeSpotsPerBooking: b.freeSpotsPerBooking ?? null,
                         prices: (b.prices ?? []).map((p: any) => ({
                             voivodeship: p.voivodeship,
@@ -372,7 +445,6 @@ const TripForm: React.FC<TripFormProps> = ({initialData}) => {
 
         return dto;
     }
-
     // Style dla inputów, aby uniknąć powtarzania
     const inputClassName = "w-full px-3.5 py-2 text-sm h-10 rounded-md border border-gray-300 bg-transparent focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500";
     const textareaClassName = "w-full px-3 py-2 text-sm rounded-md border border-gray-300 bg-transparent focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500";
@@ -445,48 +517,17 @@ const TripForm: React.FC<TripFormProps> = ({initialData}) => {
                             </div>
 
                             <div>
-                                <label className="block text-sm mb-1.5">Główne zdjęcie</label>
-                                <input
-                                    type="file"
-                                    accept="image/*"
-                                    onChange={(e) => {
-                                        setMainImageFile(e.target.files?.[0] ?? null);
-                                        setMainImageUrl(null); // wyczyść URL jeśli dodano nowe
-                                    }}
+                                <ImageUploader
+                                    label="Główne zdjęcie"
+                                    currentImageUrl={mainImageUrl}
+                                    selectedFile={mainImageFile}
+                                    onFileSelect={setMainImageFile}
+                                    onCurrentImageRemove={handleMainImageRemove}
+                                    autoUpload={true}
+                                    onUploadSuccess={handleMainImageUploadSuccess}
                                     className={inputClassName}
+                                    required
                                 />
-
-                                {/* Podgląd z backendu */}
-                                {mainImageUrl && (
-                                    <div className="mt-2 relative w-32 h-20 mb-2">
-                                        <img src={getImageUrl(mainImageUrl)}
-                                             className="w-full h-full object-cover rounded"/>
-                                        <button
-                                            type="button"
-                                            onClick={() => setMainImageUrl(null)}
-                                            className="absolute top-0 right-0 bg-red-600 text-white w-6 h-6 rounded-full text-xs flex items-center justify-center"
-                                        >
-                                            X
-                                        </button>
-                                    </div>
-                                )}
-
-
-                                {mainImageFile && !mainImageUrl && (
-                                    <div className="relative w-32 h-20 mb-2">
-                                        <img src={URL.createObjectURL(mainImageFile)}
-                                             className="w-full h-full object-cover rounded"/>
-                                        <button
-                                            type="button"
-                                            onClick={() => setMainImageFile(null)}
-                                            className="absolute top-0 right-0 bg-red-600 text-white w-6 h-6 rounded-full text-xs flex items-center justify-center"
-                                        >
-                                            X
-                                        </button>
-                                    </div>
-                                )}
-
-
                             </div>
 
                             <div>
@@ -595,7 +636,8 @@ const TripForm: React.FC<TripFormProps> = ({initialData}) => {
                                     <option value="CORPORATE">Firmowa</option>
                                 </select>
                                 {isEditMode && (
-                                    <p className="mt-1 text-xs text-yellow-500">Nie możesz edytować typu wycieczki po zapisaniu.</p>
+                                    <p className="mt-1 text-xs text-yellow-500">Nie możesz edytować typu wycieczki po
+                                        zapisaniu.</p>
                                 )}
                             </div>
                             <div>
@@ -633,6 +675,35 @@ const TripForm: React.FC<TripFormProps> = ({initialData}) => {
                             <p className="mt-1 text-sm text-gray-500">Plan, terminy, miejsca wyjazdu.</p>
                         </header>
                         <div className="col-span-12 grid grid-cols-1 gap-4">
+
+                            {!tripData.hasAvailableDates && isGroupTrip && (
+                                <section className="@5xl:grid @5xl:grid-cols-6 pt-7 @2xl:pt-9 @3xl:pt-11">
+                                    <header className="col-span-2 mb-6 @5xl:mb-0">
+                                        <h5 className="text-lg font-semibold">Cena wyjściowa</h5>
+                                        <p className="mt-1 text-sm text-gray-500">Cena "od" dla wyjazdów bez
+                                            zdefiniowanych terminów.</p>
+                                    </header>
+                                    <div className="col-span-4 grid grid-cols-2 gap-3 @lg:gap-4 @2xl:gap-5">
+                                        <div className="col-span-1">
+                                            <label className="block text-sm mb-1.5">Cena "od" (PLN)</label>
+                                            <input
+                                                type="number"
+                                                step="0.01"
+                                                name="startingPriceWithoutDate"
+                                                value={tripData.startingPriceWithoutDate ?? ''}
+                                                onChange={(e) =>
+                                                    setTripData(prev => ({
+                                                        ...prev,
+                                                        startingPriceWithoutDate: e.target.value === '' ? undefined : Number(e.target.value)
+                                                    }))
+                                                }
+                                                className={inputClassName}
+                                                placeholder="np. 299.00"
+                                            />
+                                        </div>
+                                    </div>
+                                </section>
+                            )}
 
                             {tripData.hasAvailableDates && (
                                 <>
@@ -734,43 +805,46 @@ const TripForm: React.FC<TripFormProps> = ({initialData}) => {
 
                     <section className="@5xl:grid @5xl:grid-cols-6 pt-7 @2xl:pt-9 @3xl:pt-11">
                         <header className="col-span-2 mb-6 @5xl:mb-0">
-                            <h5 className="text-lg font-semibold">Plan Wycieczki</h5>
-                            <p className="mt-1 text-sm text-gray-500">Rozpisz program dzień po dniu.</p>
+                            <h5 className="text-lg font-semibold">Dodatki</h5>
+                            <p className="mt-1 text-sm text-gray-500">
+                                Opcjonalne usługi i produkty dostępne do wycieczki.
+                            </p>
                         </header>
                         <div className="col-span-4">
-                            <div className="space-y-4">
-                                {tripData.itineraryDays.map((day, index) => (
-                                    <div key={index} className="grid grid-cols-1 gap-4 border p-4 rounded-md relative">
-                                        <button type="button" onClick={() => removeItineraryDay(index)}
-                                                className="absolute top-2 right-2 text-red-500 hover:text-red-700">&times;</button>
-                                        <div className="grid grid-cols-6 gap-4">
-                                            <div className="col-span-1">
-                                                <label className="block text-sm mb-1.5">Dzień</label>
-                                                <input type="number" value={day.dayNumber}
-                                                       onChange={(e) => handleItineraryChange(index, 'dayNumber', Number(e.target.value))}
-                                                       className={inputClassName}/>
-                                            </div>
-                                            <div className="col-span-5">
-                                                <label className="block text-sm mb-1.5">Tytuł</label>
-                                                <input type="text" value={day.title}
-                                                       onChange={(e) => handleItineraryChange(index, 'title', e.target.value)}
-                                                       className={inputClassName}/>
-                                            </div>
-                                        </div>
-                                        <div>
-                                            <label className="block text-sm mb-1.5">Opis</label>
-                                            <RichTextEditor
-                                                value={day.description}
-                                                onChange={(data) => handleItineraryDescriptionChange(index, data)}
-                                            />
+                            <AddonsEditor
+                                value={tripData.addons || []}
+                                onChange={(addons) => setTripData(prev => ({...prev, addons}))}
+                                inputClassName={inputClassName}
+                            />
+                        </div>
+                    </section>
 
-                                        </div>
-                                    </div>
+                    <section className="@5xl:grid @5xl:grid-cols-6 pt-7 @2xl:pt-9 @3xl:pt-11">
+                        <header className="col-span-2 mb-6 @5xl:mb-0">
+                            <h5 className="text-lg font-semibold">Plan Wycieczki</h5>
+                            <p className="mt-1 text-sm text-gray-500">
+                                Rozpisz program dzień po dniu z dodatkowymi polami.
+                            </p>
+                        </header>
+                        <div className="col-span-4">
+                            <div className="space-y-6">
+                                {tripData.itineraryDays.map((day, index) => (
+                                    <ItineraryDayEditor
+                                        key={day.id || index} // Użyj ID jeśli dostępne
+                                        day={day}
+                                        index={index}
+                                        onUpdate={handleItineraryChange}
+                                        onRemove={removeItineraryDay}
+                                        inputClassName={inputClassName}
+                                    />
                                 ))}
                             </div>
-                            <button type="button" onClick={addItineraryDay}
-                                    className="mt-4 px-4 py-2 text-sm font-medium text-white bg-gray-600 rounded-md hover:bg-gray-700">
-                                Dodaj Dzień
+                            <button
+                                type="button"
+                                onClick={addItineraryDay}
+                                className="mt-4 px-4 py-2 text-sm font-medium text-white bg-gray-600 rounded-md hover:bg-gray-700"
+                            >
+                                Dodaj Nowy Dzień
                             </button>
                         </div>
                     </section>
@@ -801,6 +875,17 @@ const TripForm: React.FC<TripFormProps> = ({initialData}) => {
                                     }
                                 />
                             </div>
+
+
+                            <div>
+                                <label className="block text-sm mb-1.5">Dodatkowe informacje</label>
+                                <RichTextEditor
+                                    value={tripData.additionalInformation}
+                                    onChange={(data) =>
+                                        setTripData((prev) => ({...prev, additionalInformation: data}))
+                                    }
+                                />
+                            </div>
                         </div>
                     </section>
                 </div>
@@ -822,7 +907,7 @@ const TripForm: React.FC<TripFormProps> = ({initialData}) => {
 
             <SeoFields
                 value={{metaTitle: tripData.metaTitle ?? '', metaDescription: tripData.metaDescription ?? ''}}
-                onChange={(seo) => setTripData(prev => ({...prev, ...seo}))}
+                onChange={handleSeoChange}
             />
 
             <div
