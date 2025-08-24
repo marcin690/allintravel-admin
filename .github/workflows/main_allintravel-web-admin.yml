@@ -22,7 +22,7 @@ jobs:
 
       - name: npm install and build
         run: |
-          npm install
+          npm ci --include=dev  # Upewnij się, że instaluje devDependencies
           npm run build
 
       - name: Upload artifact for deployment job
@@ -64,3 +64,4 @@ jobs:
           app-name: 'Allintravel-web-admin'
           slot-name: 'Production'
           package: .
+
