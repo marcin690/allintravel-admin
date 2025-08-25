@@ -30,6 +30,8 @@ import {appendExtraFieldsToFormData} from "@/components/shared/extraFieldsEditor
 import AddonsEditor from "@/app/admin/trips/add/components/AddonsEditor";
 import ImageUploader from "@/components/shared/ImageUploader";
 import ItineraryDayEditor from "@/app/admin/trips/add/components/ItineraryDayEditor";
+import {useRouter} from "next/navigation";
+import GalleryUploader from "@/app/admin/trips/add/components/GalleryUploader";
 
 interface TripFormProps {
     initialData?: TripDetailsDTO;
@@ -37,10 +39,14 @@ interface TripFormProps {
 
 
 
+
+
 const TripForm: React.FC<TripFormProps> = ({initialData}) => {
 
     const isEditMode = Boolean(initialData)
-
+    const router = useRouter();
+    const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
+    const [isSubmitting, setIsSubmitting] = useState(false);
 
 
     const [tripData, setTripData] = useState<TripCreateUpdateDTO>({
@@ -69,17 +75,40 @@ const TripForm: React.FC<TripFormProps> = ({initialData}) => {
         metaTitle: '',
         metaDescription: '',
         corporatePricePerPerson: undefined,
-        addons: []
+        addons: [],
+        startGroupTripDateWithoutPricing: '',
+        endGroupTripDateWithoutPricing: '',
     });
 
     const [mainImageFile, setMainImageFile] = useState<File | null>(null);
     const [mainImageUrl, setMainImageUrl] = useState<string | null>(null)
     const [galleryFiles, setGalleryFiles] = useState<File[]>([]);
     const [galleryImageUrls, setGalleryImageUrls] = useState<string[]>([]);
+
     const [extraFields, setExtraFields] = React.useState<ExtraFieldNodeFE[]>([]);
+
+    useEffect(() => {
+        const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+            if (hasUnsavedChanges && !isSubmitting) {
+                e.preventDefault();
+                e.returnValue = ''; // Chrome wymaga ustawienia returnValue
+                return 'Masz niezapisane zmiany. Czy na pewno chcesz opuścić stronę?';
+            }
+        };
+
+
+        window.addEventListener('beforeunload', handleBeforeUnload);
+
+
+        return () => {
+            window.removeEventListener('beforeunload', handleBeforeUnload);
+        };
+    }, [hasUnsavedChanges, isSubmitting]);
 
 
     useEffect(() => {
+
+
         if (!isEditMode || !initialData) return;
         setExtraFields((initialData as any).extraFields ?? []);
         const dataForForm: TripCreateUpdateDTO = {
@@ -103,7 +132,8 @@ const TripForm: React.FC<TripFormProps> = ({initialData}) => {
             hasAvailableDates: initialData.hasAvailableDates ?? true,
             addons: initialData.addons ?? [],
             tagNames: (initialData.tags ?? []).map(t => t.name),
-
+            startGroupTripDateWithoutPricing: (initialData as any).startGroupTripDateWithoutPricing ?? '',
+            endGroupTripDateWithoutPricing: (initialData as any).endGroupTripDateWithoutPricing ?? '',
             itineraryDays: (initialData.itineraryDays ?? []).map(d => ({
                 id: d.id,
                 dayNumber: Number(d.dayNumber),
@@ -111,7 +141,6 @@ const TripForm: React.FC<TripFormProps> = ({initialData}) => {
                 subtitle: d.subtitle ?? '',
                 description: d.description ?? '',
                 longDescriptionForOffer: d.longDescriptionForOffer ?? '',
-                specDateForOffer: d.specDateForOffer ?? '',
                 imageUrl: d.imageUrl ?? '',
             })),
 
@@ -126,10 +155,12 @@ const TripForm: React.FC<TripFormProps> = ({initialData}) => {
             corporatePricePerPerson: (initialData as any).corporatePricePerPerson ?? undefined,
 
         };
-
         setTripData(dataForForm);
+
+
         setMainImageUrl(initialData.mainImageUrl ?? null);
         setGalleryImageUrls(initialData.galleryImageUrls ?? []);
+
     }, [isEditMode, initialData]);
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
@@ -141,6 +172,8 @@ const TripForm: React.FC<TripFormProps> = ({initialData}) => {
             ...prevData,
             [name]: isNumberField ? Number(value) : value
         }))
+
+        setHasUnsavedChanges(true);
     }
 
     const handleSeoChange = (seoData: {metaTitle: string, metaDescription: string}) => {
@@ -149,6 +182,7 @@ const TripForm: React.FC<TripFormProps> = ({initialData}) => {
             metaTitle: seoData.metaTitle,
             metaDescription: seoData.metaDescription
         }));
+        setHasUnsavedChanges(true);
     };
 
 
@@ -156,6 +190,7 @@ const TripForm: React.FC<TripFormProps> = ({initialData}) => {
         setMainImageUrl(uploadedUrl);
         setMainImageFile(null);
         setTripData(prev => ({ ...prev, mainImageUrl: uploadedUrl }));
+        setHasUnsavedChanges(true);
     };
 
     const handleMainImageRemove = () => {
@@ -218,7 +253,7 @@ const TripForm: React.FC<TripFormProps> = ({initialData}) => {
             subtitle: "",
             description: "",
             longDescriptionForOffer: "",
-            specDateForOffer: "",
+
             imageUrl: ""
         };
 
@@ -227,6 +262,8 @@ const TripForm: React.FC<TripFormProps> = ({initialData}) => {
             itineraryDays: [...prev.itineraryDays, newDay]
         }));
     };
+
+
 
     const removeItineraryDay = (indexToRemove: number) => {
         const oldListOfDays = tripData.itineraryDays;
@@ -284,10 +321,16 @@ const TripForm: React.FC<TripFormProps> = ({initialData}) => {
 
     const handleSubmit = async (e: FormEvent) => {
         e.preventDefault();
+        setIsSubmitting(true);
 
         // 1) Walidacje szybkie
         if (tripData.itineraryDays.some(d => !d.description?.trim())) {
             toast.error('Każdy dzień programu musi mieć opis.');
+            return;
+        }
+
+        if (isIndividual && !tripData.hasAvailableDates) {
+            toast.error("Wyjazd indywidualny musi mieć predefiniowane terminy.");
             return;
         }
 
@@ -344,6 +387,7 @@ const TripForm: React.FC<TripFormProps> = ({initialData}) => {
             let msg = `Błąd ${res.status}`;
             try {
                 // spróbuj odczytać payload błędu (JSON lub text)
+                setIsSubmitting(false);
                 const ct = res.headers.get('content-type') || '';
                 msg += ct.includes('application/json')
                     ? `: ${(await res.json())?.message ?? JSON.stringify(await res.json())}`
@@ -354,10 +398,15 @@ const TripForm: React.FC<TripFormProps> = ({initialData}) => {
             return;
         }
 
+        setHasUnsavedChanges(false);
+        setIsSubmitting(false);
+
         // 5) Sukces – TripDetailsDTO
         const data = await res.json();
         toast.success(isEditMode ? 'Wycieczka zaktualizowana!' : 'Wycieczka dodana!');
         console.log('Trip saved:', data);
+        setTimeout(() => router.push("/admin/trips"), 1500);
+
     };
 
     function normalizeTripDto(data: TripCreateUpdateDTO): TripCreateUpdateDTO {
@@ -384,10 +433,10 @@ const TripForm: React.FC<TripFormProps> = ({initialData}) => {
             subtitle: d.subtitle?.trim() || undefined,
             description: d.description ?? '', // backend ma NOT NULL
             longDescriptionForOffer: d.longDescriptionForOffer?.trim() || undefined,
-            specDateForOffer: d.specDateForOffer?.trim() || undefined,
+
             imageUrl: d.imageUrl?.trim() || undefined,
         }));
-
+        dto.galleryImageUrls = [...galleryImageUrls];
 
         // DepartureOptions: pilnuj locationName
         dto.departureOptions = (dto.departureOptions ?? []).map(o => ({
@@ -445,6 +494,35 @@ const TripForm: React.FC<TripFormProps> = ({initialData}) => {
 
         return dto;
     }
+
+    const handleRemoveGalleryImage = async (index: number) => {
+        const imageUrlToRemove = galleryImageUrls[index];
+
+        try {
+            const response = await apiFetch(`/files?url=${encodeURIComponent(imageUrlToRemove)}`, {
+                method: 'DELETE'
+            });
+
+            if (response.ok) {
+                // Usuń ze stanu dopiero po potwierdzeniu z backendu
+                const newGalleryUrls = galleryImageUrls.filter((_, i) => i !== index);
+                setGalleryImageUrls(newGalleryUrls);
+                setTripData(prev => ({
+                    ...prev,
+                    galleryImageUrls: newGalleryUrls
+                }));
+                setHasUnsavedChanges(true);
+                toast.success('Zdjęcie zostało usunięte z galerii. Pamiętaj o zapisaniu zmian!');
+            } else {
+                const error = await response.json();
+                toast.error(error.error || 'Błąd podczas usuwania zdjęcia');
+            }
+        } catch (error) {
+            console.error('Error removing image:', error);
+            toast.error('Błąd podczas usuwania zdjęć');
+        }
+    };
+
     // Style dla inputów, aby uniknąć powtarzania
     const inputClassName = "w-full px-3.5 py-2 text-sm h-10 rounded-md border border-gray-300 bg-transparent focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500";
     const textareaClassName = "w-full px-3 py-2 text-sm rounded-md border border-gray-300 bg-transparent focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500";
@@ -531,51 +609,24 @@ const TripForm: React.FC<TripFormProps> = ({initialData}) => {
                             </div>
 
                             <div>
-                                <label className="block text-sm mb-1.5">Galeria zdjęć</label>
-                                <input
-                                    type="file"
-                                    accept="image/*"
-                                    multiple
-                                    onChange={(e) => {
-                                        if (!e.target.files) return;
-                                        setGalleryFiles((prev) => [...prev, ...Array.from(e.target.files)]);
+
+                                <GalleryUploader
+                                    currentImageUrls={galleryImageUrls}
+                                    selectedFiles={galleryFiles}
+                                    onFilesSelect={setGalleryFiles}
+                                    onCurrentImageRemove={handleRemoveGalleryImage}
+                                    autoUpload={true}
+                                    onUploadSuccess={(urls) => {
+                                        setGalleryImageUrls(prev => [...prev, ...urls]);
+                                        setTripData(prev => ({
+                                            ...prev,
+                                            galleryImageUrls: [...prev.galleryImageUrls, ...urls]
+                                        }));
+                                        setHasUnsavedChanges(true);
                                     }}
+                                    label="Galeria zdjęć"
                                     className={inputClassName}
                                 />
-
-                                {/* Podgląd galerii */}
-                                <div className="mt-2 grid grid-cols-4 gap-2 mt-2">
-                                    {/* Zdjęcia z backendu */}
-                                    {galleryImageUrls.map((url, idx) => (
-                                        <div key={`url-${idx}`} className="relative">
-                                            <img src={getImageUrl(url)} className="w-full h-24 object-cover rounded"/>
-                                            <button
-                                                type="button"
-                                                onClick={() => setGalleryImageUrls(prev => prev.filter((_, i) => i !== idx))}
-                                                className="absolute top-1 right-1 bg-red-600 text-white rounded-full w-6 h-6 flex items-center justify-center text-xs"
-                                            >
-                                                ✕
-                                            </button>
-                                        </div>
-                                    ))}
-
-                                    {/* Nowe pliki */}
-                                    {galleryFiles.map((file, idx) => (
-                                        <div key={`file-${idx}`} className="relative">
-                                            {file instanceof File && (
-                                                <img src={URL.createObjectURL(file)}
-                                                     className="w-full h-24 object-cover rounded"/>
-                                            )}
-                                            <button
-                                                type="button"
-                                                onClick={() => setGalleryFiles(prev => prev.filter((_, i) => i !== idx))}
-                                                className="absolute top-1 right-1 bg-red-600 text-white rounded-full w-6 h-6 flex items-center justify-center text-xs"
-                                            >
-                                                ✕
-                                            </button>
-                                        </div>
-                                    ))}
-                                </div>
                             </div>
 
                         </div>
@@ -679,12 +730,15 @@ const TripForm: React.FC<TripFormProps> = ({initialData}) => {
                             {!tripData.hasAvailableDates && isGroupTrip && (
                                 <section className="@5xl:grid @5xl:grid-cols-6 pt-7 @2xl:pt-9 @3xl:pt-11">
                                     <header className="col-span-2 mb-6 @5xl:mb-0">
-                                        <h5 className="text-lg font-semibold">Cena wyjściowa</h5>
-                                        <p className="mt-1 text-sm text-gray-500">Cena "od" dla wyjazdów bez
-                                            zdefiniowanych terminów.</p>
+                                        <h5 className="text-lg font-semibold">Zakres oferty</h5>
+                                        <p className="mt-1 text-sm text-gray-500">
+                                            Cena i ogólny zakres dat dla wyjazdów bez zdefiniowanych terminów.
+                                        </p>
                                     </header>
-                                    <div className="col-span-4 grid grid-cols-2 gap-3 @lg:gap-4 @2xl:gap-5">
-                                        <div className="col-span-1">
+
+                                    <div className="col-span-4 grid grid-cols-1 @lg:grid-cols-3 gap-3 @lg:gap-4 @2xl:gap-5">
+                                        {/* Pole Ceny */}
+                                        <div>
                                             <label className="block text-sm mb-1.5">Cena "od" (PLN)</label>
                                             <input
                                                 type="number"
@@ -699,6 +753,30 @@ const TripForm: React.FC<TripFormProps> = ({initialData}) => {
                                                 }
                                                 className={inputClassName}
                                                 placeholder="np. 299.00"
+                                            />
+                                        </div>
+
+                                        {/* 👇 NOWE POLE: DATA OD */}
+                                        <div>
+                                            <label className="block text-sm mb-1.5">Dostępny od</label>
+                                            <input
+                                                type="date"
+                                                name="startGroupTripDateWithoutPricing"
+                                                value={tripData.startGroupTripDateWithoutPricing ?? ''}
+                                                onChange={handleChange} // Używamy tej samej funkcji obsługi
+                                                className={inputClassName}
+                                            />
+                                        </div>
+
+                                        {/* 👇 NOWE POLE: DATA DO */}
+                                        <div>
+                                            <label className="block text-sm mb-1.5">Dostępny do</label>
+                                            <input
+                                                type="date"
+                                                name="endGroupTripDateWithoutPricing"
+                                                value={tripData.endGroupTripDateWithoutPricing ?? ''}
+                                                onChange={handleChange} // Używamy tej samej funkcji obsługi
+                                                className={inputClassName}
                                             />
                                         </div>
                                     </div>

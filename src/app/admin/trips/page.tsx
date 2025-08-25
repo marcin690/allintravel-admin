@@ -4,65 +4,71 @@ import React, {useCallback, useEffect, useState} from "react";
 import {TripSummaryDTO} from "@/app/shared/types/trip.types";
 import { apiFetch } from "@/utils/auth";
 import {ColumnDef} from "@tanstack/react-table";
-import {useUniversalTable} from "@/hooks/useUniwersalTable";
 import UniversalTable from "@/components/ui/UniversalTable";
-import TripTypesSummary from "@/app/admin/trips/components/TripTypesSummary";
 import Link from "next/link";
 import {BiPencil} from "react-icons/bi";
 import {AiFillDelete} from "react-icons/ai";
 import {toast} from "react-toastify";
 
+// Typ odpowiedzi ze Spring Boot
+interface PageResponse<T> {
+    content: T[];
+    totalPages: number;
+    totalElements: number;
+    number: number;
+    size: number;
+    last: boolean;
+    first: boolean;
+}
 
 export default function TripsPage() {
-
-    const [trips, setTrips] = useState([]);
     const [tableKey, setTableKey] = useState(0);
     const [selectedType, setSelectedType] = useState<string | null>(null);
 
+    // Stała wartość pageSize
+    const PAGE_SIZE = 10;
 
+    // Funkcja pobierająca dane - WAŻNE: zwraca cały obiekt Page, nie tylko content
     const fetchTrips = useCallback(
-        async (query: string, page: number): Promise<TripSummaryDTO[]> => {
+        async (query: string, page: number): Promise<PageResponse<TripSummaryDTO>> => {
             let url = "";
 
             if (selectedType) {
-                url = `/trips/admin?type=${selectedType}&page=${page}`;
+                url = `/trips/admin?type=${selectedType}&page=${page}&size=${PAGE_SIZE}`;
             } else {
-                url = `/trips/admin/all?page=${page}`;
+                url = `/trips/admin/all?page=${page}&size=${PAGE_SIZE}`;
             }
 
             const res = await apiFetch(url);
             const data = await res.json();
-            setTrips(data.content);
-            return data.content;
+
+            // Zwracamy CAŁY obiekt, nie tylko content
+            return data;
         },
-        [selectedType] // ważne: re-run gdy zmienia się typ
+        [selectedType]
     );
 
+    // Reset tabeli gdy zmienia się typ
     useEffect(() => {
         setTableKey(prevKey => prevKey + 1);
     }, [selectedType]);
 
-
-
+    // Funkcja do usuwania
     async function deleteTrip(id: number) {
         try {
             await apiFetch(`/trips/${id}`, { method: 'DELETE' });
-            setTableKey(prev => prev + 1);
+            setTableKey(prev => prev + 1); // Odśwież tabelę
             toast.success("Wycieczka usunięta");
         } catch (err: any) {
             toast.error(`Błąd usuwania: ${err.message}`);
         }
     }
 
-    // kolumny (na początek 2-3 kolumny)
+    // Definicja kolumn
     const columns: ColumnDef<TripSummaryDTO>[] = [
         {
             accessorKey: "id",
             header: "ID",
-            cell: (info) => {
-                console.log(info.row.original);
-                return info.getValue();
-            }
         },
         {
             accessorKey: "name",
@@ -82,7 +88,6 @@ export default function TripsPage() {
         {
             accessorKey: "tripType",
             header: "Typ",
-            cell: (info) => info.getValue(),
         },
         {
             accessorKey: "status",
@@ -114,68 +119,51 @@ export default function TripsPage() {
                         statusName = 'Nieznany';
                         break;
                 }
+
                 return (
                     <div className="flex items-center gap-2">
-                        <div
-                            className={`text-center h-4 w-4 rounded-full ${statusColor}`}
-                        />
+                        <div className={`h-4 w-4 rounded-full ${statusColor}`} />
                         <span>{statusName}</span>
                     </div>
                 );
             },
         },
         {
-            header: "Actions",
+            header: "Akcje",
             cell: (info) => {
                 return (
                     <div className="flex items-center gap-2">
-                        <button
-                            onClick={() => { /* tu wstaw kod do edycji */ }}
-                        >
-                            <BiPencil />
-                        </button>
+                        <Link href={`/admin/trips/edit/${info.row.original.id}`}>
+                            <BiPencil className="cursor-pointer hover:text-blue-600" />
+                        </Link>
                         <button
                             onClick={() => {
-                                if (window.confirm('Are you sure you want to delete this item?')) {
+                                if (window.confirm('Czy na pewno chcesz usunąć tę wycieczkę?')) {
                                     deleteTrip(info.row.original.id);
                                 }
                             }}
                         >
-                            <AiFillDelete />
+                            <AiFillDelete className="cursor-pointer hover:text-red-600" />
                         </button>
                     </div>
                 );
             },
         }
-
-
-
-
     ];
-
-
-
-    const {table} = useUniversalTable({
-        fetchData: fetchTrips,
-        columnConfig: columns,
-        pageable: true,
-        pageSize: 10
-    });
 
     return (
         <div className="p-6">
-
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
                 <h1 className="text-2xl font-semibold text-gray-800">Lista Wycieczek</h1>
 
                 <div className="flex items-center gap-3">
-                    {/* Dropdown */}
+                    {/* Filtr typu */}
                     <select
-                        className="rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm text-gray-700 shadow-sm focus:border-blue-500 focus:ring focus:ring-blue-200 transition"
+                        className="rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm"
                         value={selectedType ?? ""}
                         onChange={(e) => setSelectedType(e.target.value || null)}
                     >
-                        <option value="">Pokaż wszystkie typy wycieczek</option>
+                        <option value="">Wszystkie typy</option>
                         <option value="INDIVIDUAL">Indywidualne</option>
                         <option value="SCHOOL">Szkolne</option>
                         <option value="SENIOR">Seniorzy</option>
@@ -183,23 +171,27 @@ export default function TripsPage() {
                         <option value="CORPORATE">Firmowe</option>
                     </select>
 
-                    {/* Button */}
+                    {/* Przycisk dodaj */}
                     <Link
                         href="/admin/trips/add"
-                        className="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white shadow hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:ring-offset-1 transition"
+                        className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700"
                     >
-
                         Dodaj wycieczkę
                     </Link>
                 </div>
             </div>
 
-
-            <div className="border rounded-lg p-4 bg-white shadow">
-                <UniversalTable key={tableKey} fetchData={fetchTrips} columns={columns} pageable={true} pageSize={10}/>
+            {/* Tabela */}
+            <div className="">
+                <UniversalTable
+                    key={tableKey}
+                    fetchData={fetchTrips}
+                    columns={columns}
+                    pageable={true}
+                    pageSize={PAGE_SIZE}
+                    searchable={false} // Wyłącz wyszukiwanie na razie
+                />
             </div>
         </div>
-    )
-
-
+    );
 }

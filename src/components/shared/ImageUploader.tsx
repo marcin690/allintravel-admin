@@ -1,4 +1,4 @@
-import React from 'react';
+import React, {useState} from 'react';
 import { getImageUrl } from "@/utils/getImageUrl";
 import {toast} from "react-toastify";
 import {apiFetch} from "@/utils/auth";
@@ -29,6 +29,10 @@ interface ImageUploader {
     /** Callback z URL po udanym uploadzie */
     onUploadSuccess?: (url: string) => void;
 }
+
+
+
+
 const ImageUploader: React.FC<ImageUploaderProps> = ({
                                                          currentImageUrl,
                                                          selectedFile,
@@ -44,12 +48,19 @@ const ImageUploader: React.FC<ImageUploaderProps> = ({
                                                          onUploadSuccess,
                                                          required = false
                                                      }) => {
+
+    const [isUploading, setIsUploading] = useState(false);
+    const [imageLoading, setImageLoading] = useState(true);
+    const [selectedImageLoading, setSelectedImageLoading] = useState(true);
+
     const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0] ?? null;
+
         onFileSelect(file);
 
-        // Auto upload jeśli włączone
+        setIsUploading(true);
         if (file && autoUpload && onUploadSuccess) {
+
             try {
                 const formData = new FormData();
                 formData.append('file', file);
@@ -70,6 +81,8 @@ const ImageUploader: React.FC<ImageUploaderProps> = ({
             } catch (error) {
                 console.error('Upload error:', error);
                 toast.error('Błąd podczas przesyłania zdjęcia');
+            } finally {
+                setIsUploading(false);
             }
         }
     };
@@ -93,19 +106,30 @@ const ImageUploader: React.FC<ImageUploaderProps> = ({
                 </label>
             )}
 
-            <input
-                type="file"
-                accept="image/*"
-                onChange={handleFileChange}
-                className={className}
-                placeholder={placeholder}
-            />
+            <div className="flex items-center gap-3">
+                <input
+                    type="file"
+                    accept="image/*"
+                    onChange={handleFileChange}
+                    className={className}
+                    placeholder={placeholder}
+                    disabled={isUploading}
+                />
+
+                {isUploading && (
+                    <div className="flex items-center text-blue-600">
+                        <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-current"></div>
+                    </div>
+                )}
+            </div>
 
             {showPreview && (
                 <div className="mt-2">
                     {/* Podgląd zdjęcia z backendu */}
                     {currentImageUrl && !selectedFile && (
                         <div className={`relative ${previewWidth} ${previewHeight} mb-2`}>
+
+
                             <img
                                 src={getImageUrl(currentImageUrl)}
                                 alt="Current image"

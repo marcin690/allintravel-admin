@@ -1,7 +1,8 @@
 import { routes } from "@/config/routes";
-import {PiAirplaneTiltDuotone, PiFolder} from "react-icons/pi";
+import {PiAirplane, PiAirplaneTiltDuotone, PiBook, PiFolder, PiListBullets} from "react-icons/pi";
 import React from "react";
 import {Link} from "react-scroll";
+import {AiFillDashboard, AiOutlineBook} from "react-icons/ai";
 
 export const routes = {
   // ...inne trasy
@@ -17,9 +18,21 @@ export const menuItems = [
     name: "Organizacja",
   },
   {
+    name: "Rezerwacje",
+    href: "/admin/reservations",
+    icon: <PiListBullets />,
+    dropdownItems: [
+      {
+        name: "Lista rezerwacji",
+        href: "/admin/pages",
+      }
+
+    ],
+  },
+  {
     name: "Wycieczki",
     href: "/admin/trips",
-    icon: <PiAirplaneTiltDuotone />,
+    icon: <PiAirplane />,
     dropdownItems: [
       {
         name: "Lista wycieczek",
@@ -34,6 +47,23 @@ export const menuItems = [
         name: "Kategorie wycieczek",
         href: "/admin/trips/categories/",
       },
+    ],
+  },
+  {
+    name: "Strony i posty",
+    href: "/admin/trips",
+    icon: <PiBook />,
+    dropdownItems: [
+      {
+        name: "Lista ston i postów",
+        href: "/admin/pages",
+      },
+
+      {
+        name: "Dodaj nowa",
+        href: "/",
+      }
+
     ],
   },
 

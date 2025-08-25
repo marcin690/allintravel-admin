@@ -59,7 +59,7 @@ const ItineraryDayEditor: React.FC<ItineraryDayEditorProps> = ({
             </button>
 
             {/* Podstawowe pola */}
-            <div className="grid grid-cols-4 gap-4 mb-4">
+            <div className="grid grid-cols-3 gap-4 mb-4">
                 <div className="col-span-1">
                     <label className="block text-sm mb-1.5 font-medium">Dzień</label>
                     <input
@@ -70,19 +70,7 @@ const ItineraryDayEditor: React.FC<ItineraryDayEditorProps> = ({
                         min="1"
                     />
                 </div>
-                <div className="col-span-1">
-                    <label className="block text-sm mb-1.5 font-medium">Data specjalna</label>
-                    <input
-                        type="date"
-                        value={day.specDateForOffer || ''}
-                        onChange={(e) => handleFieldChange('specDateForOffer', e.target.value)}
-                        className={inputClassName}
-                        placeholder="np. 15 sierpnia"
-                    />
-                    <p className="text-xs text-gray-500 mt-1">
-                        Widoczne w ofercie PDF
-                    </p>
-                </div>
+
                 <div className="col-span-1">
                     <label className="block text-sm mb-1.5 font-medium">Tytuł główny</label>
                     <input
