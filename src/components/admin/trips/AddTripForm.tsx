@@ -198,6 +198,15 @@ const TripForm: React.FC<TripFormProps> = ({initialData}) => {
         setTripData(prev => ({ ...prev, mainImageUrl: '' }));
     };
 
+    const handleKeyDown = (e: React.KeyboardEvent<HTMLFormElement>) => {
+        // Sprawdź, czy klawisz to Enter i czy został naciśnięty wewnątrz pola <input>
+        if (e.key === 'Enter' && (e.target as HTMLElement).tagName.toLowerCase() === 'input') {
+            // Zablokuj domyślne zachowanie (wysłanie formularza)
+            e.preventDefault();
+        }
+    };
+
+
     const addTerm = () => {
         if (isGroupTrip) {
             const newTerm: TermDTO = {
@@ -433,7 +442,6 @@ const TripForm: React.FC<TripFormProps> = ({initialData}) => {
             subtitle: d.subtitle?.trim() || undefined,
             description: d.description ?? '', // backend ma NOT NULL
             longDescriptionForOffer: d.longDescriptionForOffer?.trim() || undefined,
-
             imageUrl: d.imageUrl?.trim() || undefined,
         }));
         dto.galleryImageUrls = [...galleryImageUrls];
@@ -478,12 +486,15 @@ const TripForm: React.FC<TripFormProps> = ({initialData}) => {
                     reservedPaid: gt.reservedPaid ? Number(gt.reservedPaid) : 0,
                     reservedFree: gt.reservedFree ? Number(gt.reservedFree) : 0,
                     internalNotes: gt.internalNotes ?? undefined,
+                    unavailableVoivodeships: gt.unavailableVoivodeships, // <-- Ważne, aby to pole było przekazywane
                     brackets: (gt.brackets ?? []).map((b: any) => ({
                         minParticipants: String(b.minParticipants) as '25'|'45'|'60',
                         freeSpotsPerBooking: b.freeSpotsPerBooking ?? null,
                         prices: (b.prices ?? []).map((p: any) => ({
                             voivodeship: p.voivodeship,
-                            pricePerPerson: Number(p.pricePerPerson ?? 0),
+                            // ================== TUTAJ JEST POPRAWKA ==================
+                            pricePerPerson: p.pricePerPerson != null ? Number(p.pricePerPerson) : null,
+                            // =========================================================
                         })),
                     })),
                 };
@@ -528,7 +539,7 @@ const TripForm: React.FC<TripFormProps> = ({initialData}) => {
     const textareaClassName = "w-full px-3 py-2 text-sm rounded-md border border-gray-300 bg-transparent focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500";
 
     return (
-        <form onSubmit={handleSubmit} noValidate className="flex flex-grow flex-col @container [&_label]:font-medium">
+        <form onSubmit={handleSubmit}   onKeyDown={handleKeyDown} noValidate className="flex flex-grow flex-col @container [&_label]:font-medium">
             <div className="flex-grow pb-10">
                 <div className="grid grid-cols-1 gap-8 divide-y divide-dashed divide-gray-200 @2xl:gap-10 @3xl:gap-12">
 
