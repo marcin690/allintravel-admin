@@ -15,19 +15,19 @@ type Props = {
     inputClassName: string;
 };
 
-function ensureBracket(term: TermDTO, idx: number | null) {
+function ensureBracket(term: TermDTO, idx: number) {
     if (!term.brackets) term.brackets = [];
-    if (!term.brackets[idx]) {
-        term.brackets[idx] = {
-            minParticipants: String(PARTICIPANT_BRACKETS[idx]?.min ?? 0) as any,
+    while (term.brackets.length <= idx) {
+        term.brackets.push({
+            minParticipants: String(PARTICIPANT_BRACKETS[term.brackets.length]?.min ?? 0) as any,
             freeSpotsPerBooking: undefined,
             prices: VOIVODESHIPS.map(v => ({
                 voivodeship: v.value,
                 pricePerPerson: undefined as unknown as number,
             })),
-        } as any;
+        } as any);
     }
-    if (!term.brackets[idx].prices) {
+    if (!term.brackets[idx].prices || term.brackets[idx].prices.length === 0) {
         term.brackets[idx].prices = VOIVODESHIPS.map(v => ({
             voivodeship: v.value,
             pricePerPerson: undefined as unknown as number,
@@ -47,19 +47,13 @@ const GroupTermPricingEditor: React.FC<Props> = ({
         'w-full p-1.5 text-sm rounded-md border border-gray-300 bg-transparent focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 disabled:bg-gray-100 disabled:cursor-not-allowed';
     const [copyPrice, setCopyPrice] = React.useState('');
 
-    // ======================= KLUCZOWA ZMIANA W useEffect =======================
     useEffect(() => {
-        // Jeśli nie ma bracketów, nie ma czego sprawdzać.
         if (!term.brackets || term.brackets.length === 0) return;
 
-        // Sprawdź, czy to jest "nowy" termin, w którym żadna cena nie została jeszcze wpisana.
-        // Zakładamy, że jest nowy, jeśli KAŻDA cena we wszystkich bracketach jest null/undefined.
         const allPricesAreNull = term.brackets.every(bracket =>
             bracket.prices.every(p => p.pricePerPerson == null)
         );
 
-        // Jeśli wszystkie ceny są puste, to jest to NOWY TERMIN. Nie wyłączajmy niczego.
-        // Upewnijmy się, że lista niedostępnych jest pusta i zakończmy działanie.
         if (allPricesAreNull) {
             if (term.unavailableVoivodeships?.length) {
                 onTermChange(termIndex, { ...term, unavailableVoivodeships: [] });
@@ -67,8 +61,6 @@ const GroupTermPricingEditor: React.FC<Props> = ({
             return;
         }
 
-        // Jeśli dotarliśmy tutaj, oznacza to, że jest to ISTNIEJĄCY TERMIN z danymi.
-        // Teraz możemy bezpiecznie wywnioskować stan niedostępności na podstawie cen.
         const derivedUnavailable = VOIVODESHIPS
             .map(v => {
                 const isUnavailable = term.brackets.every(bracket => {
@@ -87,16 +79,14 @@ const GroupTermPricingEditor: React.FC<Props> = ({
                 unavailableVoivodeships: derivedUnavailable,
             });
         }
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [term.brackets]); // Uruchom tylko, gdy zmienią się dane o cenach
-    // ============================================================================
+    }, [term.brackets, termIndex, onTermChange, term.unavailableVoivodeships]);
 
     function handlePriceChange(bracketIndex: number, voivodeship: string, next: string) {
-        const updated: TermWithAvailability = { ...term, brackets: [...(term.brackets ?? [])] };
+        const updated: TermWithAvailability = JSON.parse(JSON.stringify(term));
         const bracket = ensureBracket(updated, bracketIndex);
         const priceRow = bracket.prices.find(p => p.voivodeship === voivodeship);
         if (priceRow) {
-            priceRow.pricePerPerson = next === '' ? (undefined as any) : parseFloat(next);
+            priceRow.pricePerPerson = next === '' ? undefined : parseFloat(next);
         }
         onTermChange(termIndex, updated);
     }
@@ -106,16 +96,17 @@ const GroupTermPricingEditor: React.FC<Props> = ({
         field: 'minParticipants' | 'freeSpotsPerBooking',
         value: string,
     ) {
-        const updated: TermWithAvailability = { ...term, brackets: [...(term.brackets ?? [])] };
+        const updated: TermWithAvailability = JSON.parse(JSON.stringify(term));
         const bracket = ensureBracket(updated, bracketIndex);
         if (field === 'minParticipants') {
             bracket.minParticipants = (value === '' ? '' : String(parseInt(value, 10))) as any;
         } else {
-            bracket.freeSpotsPerBooking = value === '' ? (undefined as any) : parseInt(value, 10);
+            bracket.freeSpotsPerBooking = value === '' ? undefined : parseInt(value, 10);
         }
         onTermChange(termIndex, updated);
     }
 
+    // ======================= POPRAWIONA FUNKCJA =======================
     const handleAvailabilityChange = (voivodeshipValue: string, isUnavailable: boolean) => {
         const updated: TermWithAvailability = JSON.parse(JSON.stringify(term));
 
@@ -124,6 +115,7 @@ const GroupTermPricingEditor: React.FC<Props> = ({
         }
 
         if (isUnavailable) {
+            // Logika wyłączania - działała poprawnie
             if (!updated.unavailableVoivodeships.includes(voivodeshipValue)) {
                 updated.unavailableVoivodeships.push(voivodeshipValue);
             }
@@ -134,13 +126,23 @@ const GroupTermPricingEditor: React.FC<Props> = ({
                 }
             });
         } else {
+            // Logika włączania - to jest kluczowa poprawka
             updated.unavailableVoivodeships = updated.unavailableVoivodeships.filter(
                 v => v !== voivodeshipValue
             );
+
+            // PRZEŁAMANIE PĘTLI: Ustaw domyślną cenę 0 w pierwszym progu, aby useEffect
+            // wiedział, że województwo jest teraz dostępne.
+            const firstBracket = ensureBracket(updated, 0);
+            const priceInfo = firstBracket.prices.find(p => p.voivodeship === voivodeshipValue);
+            if (priceInfo) {
+                priceInfo.pricePerPerson = 0;
+            }
         }
 
         onTermChange(termIndex, updated);
     };
+    // =================================================================
 
     function handleCopyPrice(copyPriceValue: string) {
         if (copyPriceValue === '') return;
@@ -162,7 +164,7 @@ const GroupTermPricingEditor: React.FC<Props> = ({
 
     function handleTermDetailsChange(e: React.ChangeEvent<HTMLInputElement>) {
         const { name, value } = e.target;
-        const updated: TermWithAvailability = { ...term, [name]: name === 'totalCapacity' ? parseInt(value, 10) : value } as any;
+        const updated: TermWithAvailability = { ...term, [name]: name === 'totalCapacity' ? (value === '' ? undefined : parseInt(value, 10)) : value } as any;
         onTermChange(termIndex, updated);
     }
 
