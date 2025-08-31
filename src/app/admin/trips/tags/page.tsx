@@ -23,7 +23,7 @@ export interface TagDTO {
 // Główna logika komponentu przeniesiona do osobnego komponentu
 function TagsContent() {
     const [selectedType, setSelectedType] = useState<string>('');
-    const searchParams = useSearchParams();a
+    const searchParams = useSearchParams();
     const editId = searchParams.get('editId');
     const [tags, setTags] = useState<TagDTO[]>([]);
     const [isLoading, setIsLoading] = useState(false);

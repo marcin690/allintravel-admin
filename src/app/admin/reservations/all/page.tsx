@@ -16,10 +16,7 @@ export type ReservationListItem = {
     status: ReservationStatus;
     institutionName: string;
     createdAt: string;
-    trip: { // Potrzebujemy informacji, do jakiej wycieczki należy rezerwacja
-        id: number;
-        name: string;
-    };
+
 };
 
 interface PageResponse<T> {
@@ -79,8 +76,9 @@ export default function AllReservationsPage() {
             header: 'Wycieczka',
             accessorKey: 'trip.name',
             cell: ({ row }) => (
-                <Link href={`/admin/reservations/show/${row.original.trip.id}`} className="text-blue-600 hover:underline">
-                    {row.original.trip.name}
+                <Link href={`/admin/reservations/show/`} className="text-blue-600 hover:underline">
+
+                    TODO: undefined
                 </Link>
             )
         },
