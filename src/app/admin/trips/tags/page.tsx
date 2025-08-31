@@ -1,12 +1,11 @@
 "use client";
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, Suspense } from 'react';
 import { apiFetch } from "@/utils/auth";
 import { toast } from 'react-toastify';
-
 import TagsTable from './components/TagsTable';
 import TagModal from './components/TagModal';
-import {useSearchParams} from "next/navigation";
+import { useSearchParams } from "next/navigation";
 
 export interface TagDTO {
     id?: number;
@@ -21,15 +20,15 @@ export interface TagDTO {
     sortOrder?: number;
 }
 
-export default function TagsPage() {
+// Główna logika komponentu przeniesiona do osobnego komponentu
+function TagsContent() {
     const [selectedType, setSelectedType] = useState<string>('');
-    const searchParams = useSearchParams(); // DODAJ
-    const editId = searchParams.get('editId'); // DODAJ
+    const searchParams = useSearchParams();
+    const editId = searchParams.get('editId');
     const [tags, setTags] = useState<TagDTO[]>([]);
     const [isLoading, setIsLoading] = useState(false);
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [editingTag, setEditingTag] = useState<TagDTO | null>(null);
-
 
     const fetchTags = useCallback(async () => {
         setIsLoading(true);
@@ -55,7 +54,6 @@ export default function TagsPage() {
 
     useEffect(() => {
         if (editId) {
-            // Otwórz modal z tagiem do edycji
             loadAndEditTag(parseInt(editId));
         }
     }, [editId]);
@@ -76,7 +74,6 @@ export default function TagsPage() {
         }
     };
 
-
     const handleOpenModal = async (tag: TagDTO | null = null) => {
         if (tag) {
             const res = await apiFetch(`/tags/${tag.id}`);
@@ -93,7 +90,7 @@ export default function TagsPage() {
         setEditingTag(null);
 
         if (editId) {
-            window.history.replaceState({}, '', '/admin/trips/tag');
+            window.history.replaceState({}, '', '/admin/trips/tags');
         }
     };
 
@@ -182,5 +179,21 @@ export default function TagsPage() {
                 />
             )}
         </div>
+    );
+}
+
+// Eksportowany komponent owinięty w Suspense
+export default function TagsPage() {
+    return (
+        <Suspense fallback={
+            <div className="p-6">
+                <div className="animate-pulse">
+                    <div className="h-8 bg-gray-200 rounded w-1/4 mb-6"></div>
+                    <div className="h-64 bg-gray-100 rounded"></div>
+                </div>
+            </div>
+        }>
+            <TagsContent />
+        </Suspense>
     );
 }
