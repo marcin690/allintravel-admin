@@ -5,7 +5,7 @@ import React from 'react';
 import { useForm, SubmitHandler } from 'react-hook-form';
 import { useRouter } from 'next/navigation';
 import { Input, Password, Button, Text } from 'rizzui';
-import {apiFetch} from "@/utils/auth";
+import {apiFetch, apiLogin} from "@/utils/auth";
 import {setAuthAfterLogin} from "@/utils/auth";
 
 type LoginFormInputs = {
@@ -28,10 +28,10 @@ export default function SignInForm() {
         }
     });
 
-    // Po kliknięciu "Zaloguj się", jeśli walidacja frontu przejdzie:
+
     const onSubmit: SubmitHandler<LoginFormInputs> = async (data) => {
         try {
-            const res = await apiFetch
+            const res = await apiLogin
             ('/auth/authenticate', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },

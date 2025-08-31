@@ -485,6 +485,7 @@ const TripForm: React.FC<TripFormProps> = ({initialData}) => {
                     totalCapacity: Number(gt.totalCapacity ?? 0),
                     reservedPaid: gt.reservedPaid ? Number(gt.reservedPaid) : 0,
                     reservedFree: gt.reservedFree ? Number(gt.reservedFree) : 0,
+                    isPricingTemplate: gt.isPricingTemplate ?? false,
                     internalNotes: gt.internalNotes ?? undefined,
                     unavailableVoivodeships: gt.unavailableVoivodeships, // <-- Ważne, aby to pole było przekazywane
                     brackets: (gt.brackets ?? []).map((b: any) => ({
@@ -669,6 +670,7 @@ const TripForm: React.FC<TripFormProps> = ({initialData}) => {
                                 <TagPicker
                                     value={tripData.tagNames || []}
                                     onChange={(next) => setTripData(prev => ({...prev, tagNames: next}))}
+                                    tripType={tripData.tripType}
                                 />
 
                             </div>
@@ -738,61 +740,7 @@ const TripForm: React.FC<TripFormProps> = ({initialData}) => {
                         </header>
                         <div className="col-span-12 grid grid-cols-1 gap-4">
 
-                            {!tripData.hasAvailableDates && isGroupTrip && (
-                                <section className="@5xl:grid @5xl:grid-cols-6 pt-7 @2xl:pt-9 @3xl:pt-11">
-                                    <header className="col-span-2 mb-6 @5xl:mb-0">
-                                        <h5 className="text-lg font-semibold">Zakres oferty</h5>
-                                        <p className="mt-1 text-sm text-gray-500">
-                                            Cena i ogólny zakres dat dla wyjazdów bez zdefiniowanych terminów.
-                                        </p>
-                                    </header>
 
-                                    <div className="col-span-4 grid grid-cols-1 @lg:grid-cols-3 gap-3 @lg:gap-4 @2xl:gap-5">
-                                        {/* Pole Ceny */}
-                                        <div>
-                                            <label className="block text-sm mb-1.5">Cena "od" (PLN)</label>
-                                            <input
-                                                type="number"
-                                                step="0.01"
-                                                name="startingPriceWithoutDate"
-                                                value={tripData.startingPriceWithoutDate ?? ''}
-                                                onChange={(e) =>
-                                                    setTripData(prev => ({
-                                                        ...prev,
-                                                        startingPriceWithoutDate: e.target.value === '' ? undefined : Number(e.target.value)
-                                                    }))
-                                                }
-                                                className={inputClassName}
-                                                placeholder="np. 299.00"
-                                            />
-                                        </div>
-
-                                        {/* 👇 NOWE POLE: DATA OD */}
-                                        <div>
-                                            <label className="block text-sm mb-1.5">Dostępny od</label>
-                                            <input
-                                                type="date"
-                                                name="startGroupTripDateWithoutPricing"
-                                                value={tripData.startGroupTripDateWithoutPricing ?? ''}
-                                                onChange={handleChange} // Używamy tej samej funkcji obsługi
-                                                className={inputClassName}
-                                            />
-                                        </div>
-
-                                        {/* 👇 NOWE POLE: DATA DO */}
-                                        <div>
-                                            <label className="block text-sm mb-1.5">Dostępny do</label>
-                                            <input
-                                                type="date"
-                                                name="endGroupTripDateWithoutPricing"
-                                                value={tripData.endGroupTripDateWithoutPricing ?? ''}
-                                                onChange={handleChange} // Używamy tej samej funkcji obsługi
-                                                className={inputClassName}
-                                            />
-                                        </div>
-                                    </div>
-                                </section>
-                            )}
 
                             {tripData.hasAvailableDates && (
                                 <>

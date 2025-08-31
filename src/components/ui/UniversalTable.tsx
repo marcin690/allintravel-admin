@@ -4,14 +4,15 @@ import {useUniversalTable} from "@/hooks/useUniwersalTable";
 import {flexRender} from "@tanstack/react-table";
 
 interface UniversalTableProps<T> {
-    fetchData: (query: string, page: number) => Promise<T[]>;
-    columns: any
+    initialData?: T[];
+    fetchData?: (query: string, page: number) => Promise<any>;
+    columns: any;
     pageable?: boolean;
     searchable?: boolean;
     pageSize?: number;
 }
-
 export default function UniversalTable<T>({
+                                              initialData,
                                               fetchData,
                                               columns,
                                               pageable = true,
@@ -19,13 +20,13 @@ export default function UniversalTable<T>({
                                               pageSize = 25
                                           }: UniversalTableProps<T>) {
 
-    const {table, searchQuery, setSearchQuery} = useUniversalTable({
+    const { table, searchQuery, setSearchQuery } = useUniversalTable({
+        initialData, // <-- Kluczowa zmiana!
         fetchData,
         columnConfig: columns,
         pageable,
         pageSize,
-
-    })
+    });
 
     return (
         <div className="space-y-4">
@@ -60,10 +61,7 @@ export default function UniversalTable<T>({
                 {table.getRowModel().rows.map((row) => (
                     <tr key={row.id} className="hover:bg-gray-50 transition-colors">
                         {row.getVisibleCells().map((cell) => (
-                            <td
-                                key={cell.id}
-                                className="p-4 text-sm text-gray-800 whitespace-nowrap border-b border-gray-200"
-                            >
+                            <td key={cell.id} className="p-4 text-sm text-gray-800 align-top">
                                 {flexRender(cell.column.columnDef.cell, cell.getContext())}
                             </td>
                         ))}
@@ -72,7 +70,7 @@ export default function UniversalTable<T>({
                 </tbody>
             </table>
 
-            {pageable && (
+            {(pageable && table.getPageCount() > 1) && (
                 <div className="flex items-center justify-between">
                     <button
                         onClick={() => table.previousPage()}
@@ -82,8 +80,8 @@ export default function UniversalTable<T>({
                         Poprzednia
                     </button>
                     <span>
-            Strona {table.getState().pagination.pageIndex + 1}
-          </span>
+                        Strona {table.getState().pagination.pageIndex + 1} z {table.getPageCount()}
+                    </span>
                     <button
                         onClick={() => table.nextPage()}
                         disabled={!table.getCanNextPage()}

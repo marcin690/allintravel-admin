@@ -9,59 +9,52 @@ import {
 } from '@tanstack/react-table'
 import {useEffect, useState} from "react";
 
-// Spring Boot zwraca taki format
 interface PageResponse<T> {
-    content: T[];          // dane
-    totalPages: number;    // ile jest stron
-    totalElements: number; // ile jest wszystkich rekordów
-    number: number;        // aktualna strona (0-indexed)
-    size: number;          // rozmiar strony
-    last: boolean;         // czy to ostatnia strona
-    first: boolean;        // czy to pierwsza strona
+    content: T[];
+    totalPages: number;
+    totalElements: number;
 }
 
-interface UseUniwersalTableProps<T> {
-    fetchData: (query: string, page: number) => Promise<PageResponse<T>>; // Zmiana: zwracamy cały obiekt Page
+interface UseUniversalTableProps<T> {
+    initialData?: T[];
+    fetchData?: (query: string, page: number) => Promise<PageResponse<T>>;
     columnConfig: ColumnDef<T, any>[];
     pageable?: boolean;
     pageSize?: number;
 }
 
 export function useUniversalTable<T>({
+                                         initialData,
                                          fetchData,
                                          columnConfig,
                                          pageable = true,
                                          pageSize = 10
-                                     }: UseUniwersalTableProps<T>) {
+                                     }: UseUniversalTableProps<T>) {
 
-    // Stan dla danych
-    const [data, setData] = useState<T[]>([]);
+    // Używamy `initialData` tylko do JEDNORAZOWEJ inicjalizacji stanu
+    const [data, setData] = useState<T[]>(initialData || []);
     const [searchQuery, setSearchQuery] = useState('');
-    const [loading, setLoading] = useState(false);
+    const [loading, setLoading] = useState(!initialData); // Ładowanie jest true, jeśli nie ma danych początkowych
+    const [pageCount, setPageCount] = useState(0);
 
-    // Stan dla paginacji
     const [pagination, setPagination] = useState<PaginationState>({
         pageIndex: 0,
         pageSize,
     });
 
-    // Ile jest wszystkich stron
-    const [pageCount, setPageCount] = useState(0);
-
-    // Pobieranie danych gdy zmienia się strona lub wyszukiwanie
+    // Ten useEffect obsługuje TYLKO tryb "Fetch"
     useEffect(() => {
+        // Jeśli nie ma funkcji `fetchData`, to jesteśmy w trybie statycznym - nie rób nic.
+        if (!fetchData) {
+            return;
+        }
+
         const loadData = async () => {
             setLoading(true);
             try {
-                // Pobieramy dane z backendu
                 const response = await fetchData(searchQuery, pagination.pageIndex);
-
-                // Ustawiamy dane z content
                 setData(response.content);
-
-                // Ustawiamy ilość stron z odpowiedzi
                 setPageCount(response.totalPages);
-
             } catch (error) {
                 console.error("Błąd podczas pobierania danych:", error);
                 setData([]);
@@ -72,26 +65,31 @@ export function useUniversalTable<T>({
         };
 
         loadData();
-    }, [searchQuery, pagination.pageIndex]); // Reaguj na zmiany strony i wyszukiwania
+    }, [fetchData, searchQuery, pagination.pageIndex]); // Usunęliśmy `initialData` z zależności
 
-    // Konfiguracja tabeli
+    // Ten useEffect obsługuje TYLKO tryb "Data" (statyczny)
+    useEffect(() => {
+        // Jeśli nie przekazano `initialData` lub jest funkcja `fetchData`, nie rób nic.
+        if (!initialData || fetchData) {
+            return;
+        }
+        setData(initialData);
+        setPageCount(Math.ceil((initialData.length || 0) / pageSize));
+
+    }, [initialData, pageSize, fetchData]);
+
     const table = useReactTable({
         data,
         columns: columnConfig,
-        pageCount, // Ile jest stron
+        pageCount,
         state: {
-            pagination, // Stan paginacji
+            pagination,
         },
-        onPaginationChange: setPagination, // Funkcja do zmiany strony
+        onPaginationChange: setPagination,
         getCoreRowModel: getCoreRowModel(),
         getPaginationRowModel: getPaginationRowModel(),
-        manualPagination: true, // WAŻNE: Mówimy React Table że sami zarządzamy paginacją
+        manualPagination: !!fetchData,
     });
 
-    return {
-        table,
-        setSearchQuery,
-        searchQuery,
-        loading,
-    };
+    return { table, setSearchQuery, searchQuery, loading };
 }

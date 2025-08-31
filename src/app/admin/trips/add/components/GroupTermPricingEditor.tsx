@@ -36,6 +36,8 @@ function ensureBracket(term: TermDTO, idx: number) {
     return term.brackets[idx];
 }
 
+
+
 const GroupTermPricingEditor: React.FC<Props> = ({
                                                      term,
                                                      termIndex,
@@ -46,6 +48,10 @@ const GroupTermPricingEditor: React.FC<Props> = ({
     const tableInputClassName =
         'w-full p-1.5 text-sm rounded-md border border-gray-300 bg-transparent focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 disabled:bg-gray-100 disabled:cursor-not-allowed';
     const [copyPrice, setCopyPrice] = React.useState('');
+
+
+
+
 
     useEffect(() => {
         if (!term.brackets || term.brackets.length === 0) return;
@@ -91,6 +97,8 @@ const GroupTermPricingEditor: React.FC<Props> = ({
         onTermChange(termIndex, updated);
     }
 
+
+
     function handleBracketField(
         bracketIndex: number,
         field: 'minParticipants' | 'freeSpotsPerBooking',
@@ -119,7 +127,7 @@ const GroupTermPricingEditor: React.FC<Props> = ({
             if (!updated.unavailableVoivodeships.includes(voivodeshipValue)) {
                 updated.unavailableVoivodeships.push(voivodeshipValue);
             }
-            updated.brackets?.forEach(bracket => {
+            updated.brackets?.forEach((bracket: any) => {
                 const priceInfo = bracket.prices.find(p => p.voivodeship === voivodeshipValue);
                 if (priceInfo) {
                     priceInfo.pricePerPerson = undefined as any;
@@ -165,6 +173,21 @@ const GroupTermPricingEditor: React.FC<Props> = ({
     function handleTermDetailsChange(e: React.ChangeEvent<HTMLInputElement>) {
         const { name, value } = e.target;
         const updated: TermWithAvailability = { ...term, [name]: name === 'totalCapacity' ? (value === '' ? undefined : parseInt(value, 10)) : value } as any;
+        onTermChange(termIndex, updated);
+    }
+
+    function handleIsTemplateChange(e: React.ChangeEvent<HTMLInputElement>) {
+        const isChecked = e.target.checked;
+        const updated: TermWithAvailability = JSON.parse(JSON.stringify(term));
+
+        updated.isPricingTemplate = isChecked;
+
+        // Jeśli zaznaczono, czyścimy i blokujemy daty
+        if (isChecked) {
+            updated.startDate = undefined; // Ustawiamy na undefined (lub null)
+            updated.endDate = undefined;   // Ustawiamy na undefined (lub null)
+        }
+
         onTermChange(termIndex, updated);
     }
 
@@ -232,6 +255,19 @@ const GroupTermPricingEditor: React.FC<Props> = ({
                         onChange={handleTermDetailsChange}
                         className={inputClassName}
                     />
+                </div>
+                <div className="flex items-center pb-2">
+                    <input
+                        type="checkbox"
+                        id={`isTemplate-${termIndex}`}
+                        name="isPricingTemplate"
+                        checked={!!term.isPricingTemplate}
+                        onChange={handleIsTemplateChange}
+                        className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                    />
+                    <label htmlFor={`isTemplate-${termIndex}`} className="ml-2 text-sm text-gray-700">
+                        Szablon cennika
+                    </label>
                 </div>
             </div>
             <div className="overflow-x-auto">

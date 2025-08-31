@@ -7,7 +7,7 @@ import {ColumnDef} from "@tanstack/react-table";
 import UniversalTable from "@/components/ui/UniversalTable";
 import Link from "next/link";
 import {BiPencil} from "react-icons/bi";
-import {AiFillDelete} from "react-icons/ai";
+import {AiFillDelete, AiFillStar, AiOutlineStar} from "react-icons/ai";
 import {toast} from "react-toastify";
 
 // Typ odpowiedzi ze Spring Boot
@@ -26,7 +26,7 @@ export default function TripsPage() {
     const [selectedType, setSelectedType] = useState<string | null>(null);
 
     // Stała wartość pageSize
-    const PAGE_SIZE = 10;
+    const PAGE_SIZE = 50;
 
     // Funkcja pobierająca dane - WAŻNE: zwraca cały obiekt Page, nie tylko content
     const fetchTrips = useCallback(
@@ -127,6 +127,38 @@ export default function TripsPage() {
                     </div>
                 );
             },
+        },
+        {
+            header: "Info",
+            cell: (info) => {
+                const row = info.row.original;
+                const lastModifiedAt = row.lastModifiedAt; // Zakładamy, że to pole istnieje
+                const isFeatured = row.featured; // Zakładamy, że to pole istnieje
+
+                return (
+                    <div>
+                        {/* Informacja o wyróżnieniu */}
+                        <div className="flex items-center gap-1">
+                            {isFeatured ? (
+                                <AiFillStar className="text-yellow-500" />
+                            ) : (
+                                <AiOutlineStar className="text-gray-400" />
+                            )}
+                            <span className={`text-sm ${isFeatured ? 'font-semibold' : 'text-gray-600'}`}>
+                                {isFeatured ? 'Wyróżniona' : 'Standardowa'}
+                            </span>
+                        </div>
+
+                        {/* Informacja o ostatniej aktualizacji */}
+                        <div className="text-xs text-gray-500 mt-1">
+                            {lastModifiedAt
+                                ? `Aktualizacja: ${new Date(lastModifiedAt).toLocaleString('pl-PL')}`
+                                : '-'
+                            }
+                        </div>
+                    </div>
+                );
+            }
         },
         {
             header: "Akcje",

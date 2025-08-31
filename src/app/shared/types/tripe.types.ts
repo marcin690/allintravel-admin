@@ -47,16 +47,17 @@ export type GroupPriceDTO = {
 };
 
 export type GroupBracketDTO = {
-    // backend wymaga stringów '25' | '45' | '60'
     minParticipants: '25' | '45' | '60';
     freeSpotsPerBooking?: number | null;
     prices: GroupPriceDTO[];
+    totalCapacity?: number | null;
 };
 
 export type GroupTermDTO = {
     id?: number;
-    startDate: string;
-    endDate: string;
+    startDate?: string;
+    endDate?: string;
+    isPricingTemplate?: boolean;
     status: 'AVAILABLE' | 'UNAVAILABLE' | 'SOLD_OUT';
     totalCapacity: number;
     reservedPaid?: number;

@@ -13,8 +13,10 @@ export function parseJwt(token: string): { exp?: number } | null {
 
 export function setAuthAfterLogin(token: string) {
     try { localStorage.setItem("jwt", token); } catch {}
+
     const { exp } = parseJwt(token) ?? {};
-    const maxAge = exp ? Math.max(Math.floor(exp - Date.now() / 1000), 0) : 60 * 60 * 8;
+    const maxAge = exp ? Math.max(exp - Math.floor(Date.now() / 1000), 0) : 60 * 60 * 8;
+
     document.cookie = `jwt=${token}; Path=/; Max-Age=${maxAge}; SameSite=Lax`;
     if (exp) document.cookie = `jwt_exp=${exp}; Path=/; Max-Age=${maxAge}; SameSite=Lax`;
 }
@@ -26,16 +28,34 @@ export function logout() {
     if (typeof window !== "undefined") window.location.href = "/login";
 }
 
+export function isTokenExpired(): boolean {
+    if (typeof window === "undefined") return true;
+
+    const token = localStorage.getItem("jwt");
+    if (!token) return true;
+
+    const { exp } = parseJwt(token) ?? {};
+    if (!exp) return true;
+
+    return exp <= Math.floor(Date.now() / 1000);
+}
+
 // fetch z automatycznym Bearer + auto-logout przy 401/403
-export async function apiFetch(path: string, init?: RequestInit) {
+export async function apiFetch(path: string, init?: RequestInit, skipAuth = false) {
     const base = process.env.NEXT_PUBLIC_API_URL ??
         (process.env.NODE_ENV === 'production'
             ? 'https://allintravel-api-d9g2dnewh8f3hhaf.polandcentral-01.azurewebsites.net/api'
             : 'http://localhost:8080/api');
-    const token = typeof window !== "undefined" ? localStorage.getItem("jwt") : null;
 
+    // Sprawdź czy token nie wygasł PRZED wysłaniem requestu
+    if (!skipAuth && isTokenExpired()) {
+        logout();
+        throw new Error("Sesja wygasła");
+    }
+
+    // Pobierz token tylko jeśli nie pomijamy auth i token nie wygasł
+    const token = !skipAuth && typeof window !== "undefined" ? localStorage.getItem("jwt") : null;
     const isFormData = typeof FormData !== "undefined" && init?.body instanceof FormData;
-
 
     const headers: HeadersInit = {
         ...(init?.headers as any),
@@ -48,9 +68,28 @@ export async function apiFetch(path: string, init?: RequestInit) {
         headers,
     });
 
+    // Sprawdź odpowiedź serwera na 401/403
     // if (res.status === 401 || res.status === 403) {
     //     logout();
     //     throw new Error("Sesja wygasła lub brak autoryzacji.");
     // }
-    return res; // nadal zwracamy Response – w komponentach rób res.json()
+
+    return res;
+}
+
+export async function apiLogin(path: string, init?: RequestInit) {
+    const base = process.env.NEXT_PUBLIC_API_URL ??
+        (process.env.NODE_ENV === 'production'
+            ? 'https://allintravel-api-d9g2dnewh8f3hhaf.polandcentral-01.azurewebsites.net/api'
+            : 'http://localhost:8080/api');
+
+    const headers: HeadersInit = {
+        'Content-Type': 'application/json',
+        ...(init?.headers as any),
+    };
+
+    return fetch(base + path, {
+        ...init,
+        headers,
+    });
 }

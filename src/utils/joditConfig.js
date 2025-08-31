@@ -6,6 +6,7 @@ const joditConfig = {
     showWordsCounter: false,
     toolbarSticky: false,
     buttons: [
+        'paragraph',
         'bold', 'italic', 'underline', '|',
         'ul', 'ol', '|',
         'link', 'image', '|',

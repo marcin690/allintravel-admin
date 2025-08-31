@@ -23,8 +23,12 @@ export const menuItems = [
     icon: <PiListBullets />,
     dropdownItems: [
       {
-        name: "Lista rezerwacji",
-        href: "/admin/pages",
+        name: "Według statusu",
+        href: "/admin/reservations/all",
+      },
+      {
+        name: "Według wycieczki",
+        href: "/admin/reservations",
       }
 
     ],
@@ -47,6 +51,10 @@ export const menuItems = [
         name: "Kategorie wycieczek",
         href: "/admin/trips/categories/",
       },
+      {
+        name: "Tagi wycieczek",
+        href: "/admin/trips/tags/",
+      },
     ],
   },
   {
@@ -61,7 +69,7 @@ export const menuItems = [
 
       {
         name: "Dodaj nowa",
-        href: "/",
+        href: "/admin/pages/add",
       }
 
     ],

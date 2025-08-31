@@ -11,7 +11,7 @@ import UniversalTable from "@/components/ui/UniversalTable";
 
 type ContentStatus = 'DRAFT' | 'PUBLISHED' | 'ARCHIVED';
 
-type PageItem = {
+export type PageItem = {
     id: number;
     title: string;
     slug: string;
@@ -43,7 +43,7 @@ export default function PagesListPage() {
                 });
                 if (query) params.append("search", query);
 
-                const response = await apiFetch(`/content?${params}`);
+                const response = await apiFetch(`/content/admin?${params}`);
                 if (!response.ok) {
                     toast.error("Błąd pobierania stron");
                     return { rows: [], pageCount: 0, total: 0 };
@@ -199,7 +199,7 @@ export default function PagesListPage() {
                     </select>
 
                     <Link
-                        href={contentType === 'PAGE' ? '/admin/pages/add' : '/admin/posts/add'}
+                        href={contentType === 'PAGE' ? '/admin/pagesAd/add' : '/admin/pages/add'}
                         className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700"
                     >
                         Dodaj {contentType === 'PAGE' ? 'stronę' : 'wpis'}
