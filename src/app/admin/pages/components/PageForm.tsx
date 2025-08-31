@@ -6,7 +6,8 @@ import React, { useState, useEffect } from 'react';
 import ExtraFieldsEditor from '@/components/shared/extraFieldsEditor/ExtraFieldsEditor';
 import { apiFetch } from '@/utils/auth';
 import { toast } from 'react-toastify';
-import RichTextEditor from "@/components/ui/RichTextEditor";
+
+import dynamic from "next/dynamic";
 
 // Typy
 type ContentStatus = 'DRAFT' | 'PUBLISHED' | 'ARCHIVED';
@@ -17,6 +18,18 @@ interface PageFormProps {
     mode: 'create' | 'edit';
     initialData?: any;
 }
+
+const RichTextEditor = dynamic(
+    () => import("@/components/ui/RichTextEditor"),
+    {
+        ssr: false,
+        loading: () => (
+            <div className="w-full h-64 bg-gray-100 rounded-md animate-pulse flex items-center justify-center">
+                <span className="text-gray-500">Ładowanie edytora...</span>
+            </div>
+        )
+    }
+);
 
 // Klasy CSS
 const inputClassName = "w-full px-3.5 py-2 text-sm h-10 rounded-md border border-gray-300 bg-transparent focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500";
